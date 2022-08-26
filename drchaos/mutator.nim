@@ -1,6 +1,15 @@
 import std/[random, macros, setutils, enumutils, typetraits, options]
 import common, private/[sampler, utf8fix]
 
+when (NimMajor, NimMinor, NimPatch) < (1, 7, 1):
+  proc rand*[T: Ordinal](r: var Rand; t: typedesc[T]): T =
+    when T is range or T is enum:
+      result = rand(r, low(T)..high(T))
+    elif T is bool:
+      result = cast[int64](r.next) < 0
+    else:
+      result = cast[T](r.next shr (sizeof(uint64)*8 - sizeof(T)*8))
+
 when not defined(fuzzerStandalone):
   proc LLVMFuzzerInitialize(): cint {.exportc.} =
     {.emit: "N_CDECL(void, NimMain)(void); NimMain();".}
