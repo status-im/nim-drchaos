@@ -23,10 +23,9 @@ proc buildBinary(name: string, srcDir = "./", params = "", lang = "c") =
 
   exec "nim " & lang & " --out:build/" & name & " " & extra_params & " " & srcDir & name & ".nim"
 
-proc test(name: string, srcDir = "tests/", params = "", lang = "c") =
+proc test(name: string, srcDir = "tests/", args = "", lang = "c") =
   buildBinary name, srcDir, "--mm:arc -d:danger"
-  withDir("build/"):
-    exec name & " -max_total_time=3 -runs=10000" & params
+  exec "build/" & name & " -max_total_time=3 -runs=10000" & args
 
 task testDrChaosExamples, "Build & run Dr. Chaos examples":
   let examples = @["fuzz_graph"]
@@ -36,7 +35,7 @@ task testDrChaosExamples, "Build & run Dr. Chaos examples":
 task testDrChaos, "Build & run Dr. Chaos tests":
   for filePath in listFiles("tests/"):
     if filePath[^4..^1] == ".nim":
-      test filePath[len("tests/")..^5], " -error_exitcode=0"
+      test filePath[len("tests/")..^5], args = " -error_exitcode=0"
 
 task testDrChaosNoCrash, "Build & run Dr. Chaos tests that should not crash":
   for filePath in listFiles("tests/no_crash/"):
@@ -45,7 +44,9 @@ task testDrChaosNoCrash, "Build & run Dr. Chaos tests that should not crash":
 
 task test, "Run basic tests":
   testDrChaosTask()
+  testDrChaosNoCrashTask()
 
 task testAll, "Run all tests":
   testDrChaosTask()
-  testDrChaosNoCrash()
+  testDrChaosNoCrashTask()
+  testDrChaosExamplesTask()

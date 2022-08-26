@@ -367,6 +367,14 @@ proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges
       res = s.selected
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
+proc runPostProcessor*(x: var string, depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var set[T], depth: int; r: var Rand)
+proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand)
+proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand)
+proc runPostProcessor*[S, T](x: var array[S, T], depth: int; r: var Rand)
+
 proc runPostProcessor*[T: distinct](x: var T, depth: int; r: var Rand) =
   # Allow post-processor functions for all distinct types.
   when compiles(postProcess(x, r)):
@@ -377,6 +385,13 @@ proc runPostProcessor*[T: distinct](x: var T, depth: int; r: var Rand) =
   else:
     when x.distinctBase is PostProcessTypes:
       runPostProcessor(x.distinctBase, depth-1, r)
+
+proc runPostProcessor*(x: var string, depth: int; r: var Rand) =
+  if depth < 0:
+    reset(x)
+  else:
+    when compiles(postProcess(x, r)):
+      postProcess(x, r)
 
 proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand) =
   if depth < 0:
@@ -392,13 +407,6 @@ proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand) =
 proc runPostProcessor*[T](x: var set[T], depth: int; r: var Rand) =
   when compiles(postProcess(x, r)):
     if depth >= 0:
-      postProcess(x, r)
-
-proc runPostProcessor*(x: var string, depth: int; r: var Rand) =
-  if depth < 0:
-    reset(x)
-  else:
-    when compiles(postProcess(x, r)):
       postProcess(x, r)
 
 proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand) =
