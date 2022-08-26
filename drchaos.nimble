@@ -24,7 +24,7 @@ proc buildBinary(name: string, srcDir = "./", params = "", lang = "c") =
   exec "nim " & lang & " --out:build/" & name & " " & extra_params & " " & srcDir & name & ".nim"
 
 proc test(name: string, srcDir = "tests/", args = "", lang = "c") =
-  buildBinary name, srcDir, "--mm:arc -d:danger"
+  buildBinary name, srcDir, "-d:release"
   # Should ideally run inside build/ because of the artifacts, but cd doesn't work!
   exec "build/" & name & " -max_total_time=3 -runs=10000" & args
 
