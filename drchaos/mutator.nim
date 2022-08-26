@@ -2,7 +2,7 @@ import std/[random, macros, setutils, enumutils, typetraits, options]
 import common, private/[sampler, utf8fix]
 
 when not defined(fuzzerStandalone):
-  proc initialize(): cint {.exportc: "LLVMFuzzerInitialize".} =
+  proc LLVMFuzzerInitialize(): cint {.exportc.} =
     {.emit: "N_CDECL(void, NimMain)(void); NimMain();".}
 
   proc mutate(data: ptr UncheckedArray[byte], len, maxLen: int): int {.

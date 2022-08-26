@@ -2,10 +2,10 @@ mode = ScriptMode.Verbose
 
 version = "0.1.0"
 author = "Dr. Chaos Team"
-description = "Library for structured fuzzing for Nim"
+description = "A powerful and easy-to-use fuzzing framework in Nim for C/C++/Obj-C targets"
 license = "MIT"
 srcDir = "."
-skipDirs = @["tests", "benchmarks", "examples"]
+skipDirs = @["tests", "benchmarks", "examples", "experiments"]
 
 requires "nim >= 1.4.0"
 
@@ -23,29 +23,29 @@ proc buildBinary(name: string, srcDir = "./", params = "", lang = "c") =
 
   exec "nim " & lang & " --out:build/" & name & " " & extra_params & " " & srcDir & name & ".nim"
 
-proc test(name: string, srcDir = "tests/", lang = "c") =
+proc test(name: string, srcDir = "tests/", params = "", lang = "c") =
   buildBinary name, srcDir, "--mm:arc -d:danger"
   withDir("build/"):
-    exec name & " -error_exitcode=0 -max_total_time=5 -runs=10000"
+    exec name & " -max_total_time=3 -runs=10000" & params
 
 task testDrChaosExamples, "Build & run Dr. Chaos examples":
-  let examples = @["fuzz_graph", "fuzz_tree"]
+  let examples = @["fuzz_graph"]
   for ex in examples:
     test ex, "examples/"
 
 task testDrChaos, "Build & run Dr. Chaos tests":
   for filePath in listFiles("tests/"):
     if filePath[^4..^1] == ".nim":
-      test filePath[len("tests/")..^5]
+      test filePath[len("tests/")..^5], " -error_exitcode=0"
 
-task testDrChaosTimed, "Build & run Dr. Chaos time limited tests":
-  for filePath in listFiles("tests/time_limited/"):
+task testDrChaosNoCrash, "Build & run Dr. Chaos tests that should not crash":
+  for filePath in listFiles("tests/no_crash/"):
     if filePath[^4..^1] == ".nim":
-      test filePath[len("tests/time_limited/")..^5], "tests/time_limited/"
+      test filePath[len("tests/no_crash/")..^5], "tests/no_crash/"
 
-#task test, "Run basic tests":
-  #testDrChaosTask()
+task test, "Run basic tests":
+  testDrChaosTask()
 
 task testAll, "Run all tests":
   testDrChaosTask()
-  testDrChaosTimedTask()
+  testDrChaosNoCrash()

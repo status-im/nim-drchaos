@@ -17,7 +17,6 @@ func `==`(a, b: ContentNode): bool =
   of Text: return a.textStr == b.textStr
 
 func fuzzTarget(x: ContentNode) =
-  when defined(dumpFuzzInput): debugEcho(x)
   let data = ContentNode(kind: P, pChildren: @[
     ContentNode(kind: Text, textStr: "mychild"),
     ContentNode(kind: Br)
