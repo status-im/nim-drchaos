@@ -515,8 +515,8 @@ template mutatorImpl(target, mutator, typ: untyped) =
       try:
         FuzzTarget(target)(getInput(x, data))
       finally:
+        # Call Nim's compiler api to report unhandled exceptions. See: Nim#18215
         when compileOption("exceptions", "goto"):
-          # Call Nim's compiler api to report unhandled exceptions.
           {.emit: "nimTestErrorFlag();".}
 
   proc customMutatorImpl(x: var typ; data: openArray[byte]; maxLen: int;
