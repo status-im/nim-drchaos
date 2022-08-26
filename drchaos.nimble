@@ -3,7 +3,7 @@ mode = ScriptMode.Verbose
 version = "0.1.0"
 author = "Dr. Chaos Team"
 description = "A powerful and easy-to-use fuzzing framework in Nim for C/C++/Obj-C targets"
-license = "MIT"
+license = "Apache License 2.0"
 srcDir = "."
 skipDirs = @["tests", "benchmarks", "examples", "experiments"]
 
@@ -25,6 +25,7 @@ proc buildBinary(name: string, srcDir = "./", params = "", lang = "c") =
 
 proc test(name: string, srcDir = "tests/", args = "", lang = "c") =
   buildBinary name, srcDir, "--mm:arc -d:danger"
+  # Should ideally run inside build/ because of the artifacts, but it doesn't work!
   exec "build/" & name & " -max_total_time=3 -runs=10000" & args
 
 task testDrChaosExamples, "Build & run Dr. Chaos examples":
