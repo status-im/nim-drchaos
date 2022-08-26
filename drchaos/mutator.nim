@@ -186,7 +186,7 @@ template sampleAttempt(call: untyped) =
 
 proc sample[T: distinct](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(x, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
   else:
     sample(x.distinctBase, s, r, res)
 
@@ -213,20 +213,20 @@ proc sample(x: string; s: var Sampler; r: var Rand; res: var int) =
 
 proc sample[T: tuple|object](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(x, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
   else:
     for v in fields(x):
       sample(v, s, r, res)
 
 proc sample[T](x: ref T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(x, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
   else:
     if x != nil: sample(x[], s, r, res)
 
 proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(x, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
   else:
     for i in low(x)..high(x):
       sample(x[i], s, r, res)
