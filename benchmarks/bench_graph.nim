@@ -1,6 +1,6 @@
 # WARNING: This benchmark does not run a complete fuzzing iteration, just the mutator.
 # As such it doesn't account for LibFuzzer's overhead or the efficiency of the cache.
-# Compile with: nim c -d:danger bench_graph.nim
+# Compile with: nim c --mm:arc -d:danger bench_graph.nim
 # Then run: perf record -e cycles:pp --call-graph dwarf ./bench_graph
 include examples/fuzz_graph
 

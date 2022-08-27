@@ -8,7 +8,7 @@ when (NimMajor, NimMinor, NimPatch) < (1, 7, 1):
     elif T is bool:
       result = cast[int64](r.next) < 0
     else:
-      result = cast[T](r.next shr (sizeof(uint64)*8 - sizeof(T)*8))
+      result = cast[T](r.next shr (sizeof(uint64) - sizeof(T))*8)
 
 when not defined(fuzzerStandalone):
   proc LLVMFuzzerInitialize(): cint {.exportc.} =
@@ -118,7 +118,7 @@ when defined(fuzzerStandalone):
     else:
       flipBit(cast[ptr UncheckedArray[uint8]](addr result[0]), result.len, r)
 
-  proc mutateByteSizedSeq*[T: ByteSized and not range](value: sink seq[T]; userMax, sizeIncreaseHint: int;
+  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax, sizeIncreaseHint: int;
       r: var Rand): seq[T] =
     result = value
     while result.len != 0 and r.rand(bool):
@@ -139,7 +139,7 @@ when defined(fuzzerStandalone):
       elif T is range:
         for i in 0..<result.len: result[i] = clamp(result[i], low(T), high(T))
 else:
-  proc mutateByteSizedSeq*[T: ByteSized and not range](value: sink seq[T]; userMax, sizeIncreaseHint: int;
+  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax, sizeIncreaseHint: int;
       r: var Rand): seq[T] =
     if r.rand(0..20) == 0:
       result = @[]
@@ -590,8 +590,7 @@ template mutatorImpl(target, mutator, typ: untyped) =
     testOneInputImpl(x, toOpenArray(data, 0, len-1))
 
   proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte], len, maxLen: int,
-      seed: int64): int {.
-      exportc.} =
+      seed: int64): int {.exportc.} =
     var r = initRand(seed)
     var x: typ
     customMutatorImpl(x, toOpenArray(data, 0, len-1), maxLen, r)
