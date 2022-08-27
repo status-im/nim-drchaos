@@ -40,17 +40,17 @@ proc runMutator*[T: tuple|object](x: var T; sizeIncreaseHint: int; enforceChange
 proc runMutator*[T](x: var ref T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand)
 proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand)
 
-proc flipBit*(bytes: ptr UncheckedArray[byte]; len: int; r: var Rand) =
-  ## Flips random bit in the buffer.
-  let bit = rand(r, len * 8 - 1)
-  bytes[bit div 8] = bytes[bit div 8] xor (1'u8 shl (bit mod 8))
-
-proc flipBit*[T](value: T; r: var Rand): T =
-  ## Flips random bit in the value.
-  result = value
-  flipBit(cast[ptr UncheckedArray[byte]](addr result), sizeof(T), r)
-
 when defined(fuzzerStandalone):
+  proc flipBit*(bytes: ptr UncheckedArray[byte]; len: int; r: var Rand) =
+    ## Flips random bit in the buffer.
+    let bit = rand(r, len * 8 - 1)
+    bytes[bit div 8] = bytes[bit div 8] xor (1'u8 shl (bit mod 8))
+
+  proc flipBit*[T](value: T; r: var Rand): T =
+    ## Flips random bit in the value.
+    result = value
+    flipBit(cast[ptr UncheckedArray[byte]](addr result), sizeof(T), r)
+
   proc mutateValue*[T](value: T; r: var Rand): T =
     flipBit(value, r)
 else:
@@ -88,29 +88,80 @@ proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHin
     runMutator(value[index], remainingSize, true, r)
     result = value != previous # runMutator item may still fail to generate a new mutation.
 
-proc mutateByteSizedSeq*[T: ByteSized and not range](value: sink seq[T]; userMax, sizeIncreaseHint: int;
-    r: var Rand): seq[T] =
-  if r.rand(0..20) == 0:
-    result = @[]
-  else:
-    let oldSize = value.len
-    result = value
-    result.setLen(max(1, oldSize + r.rand(sizeIncreaseHint)))
-    result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
-    when T is bool:
-      # Fix bool values so UBSan stops complaining.
-      for i in 0..<result.len: result[i] = cast[seq[byte]](result)[i] != 0.byte
-    elif T is range:
-      for i in 0..<result.len: result[i] = clamp(result[i], low(T), high(T))
+when defined(fuzzerStandalone):
+  proc delete(x: var string, i: Natural) {.noSideEffect.} =
+    let xl = x.len
+    for j in i.int..xl-2: x[j] = x[j+1]
+    setLen(x, xl-1)
 
-proc mutateString*(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string =
-  if r.rand(0..20) == 0:
-    result = ""
-  else:
-    let oldSize = value.len
+  proc insert(x: var string, item: char, i = 0.Natural) {.noSideEffect.} =
+    let xl = x.len
+    setLen(x, xl+1)
+    var j = xl-1
+    while j >= i:
+      x[j+1] = x[j]
+      dec(j)
+    x[i] = item
+
+  proc mutateString(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string =
     result = value
-    result.setLen(max(1, oldSize + r.rand(sizeIncreaseHint)))
-    result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
+    while result.len != 0 and r.rand(bool):
+      result.delete(rand(r, result.high))
+    while sizeIncreaseHint > 0 and result.len < sizeIncreaseHint and r.rand(bool):
+      let index = rand(r, result.len)
+      result.insert(r.rand(char), index)
+    if result != value:
+      return result
+    if result.len == 0:
+      result.add(r.rand(char))
+      return result
+    else:
+      flipBit(cast[ptr UncheckedArray[uint8]](addr result[0]), result.len, r)
+
+  proc mutateByteSizedSeq*[T: ByteSized and not range](value: sink seq[T]; userMax, sizeIncreaseHint: int;
+      r: var Rand): seq[T] =
+    result = value
+    while result.len != 0 and r.rand(bool):
+      result.delete(rand(r, result.high))
+    while sizeIncreaseHint > 0 and result.len < sizeIncreaseHint and r.rand(bool):
+      let index = rand(r, result.len)
+      result.insert(r.rand(T), index)
+    if result != value:
+      return result
+    if result.len == 0:
+      result.add(r.rand(T))
+      return result
+    else:
+      flipBit(cast[ptr UncheckedArray[uint8]](addr result[0]), result.len, r)
+      when T is bool:
+        # Fix bool values so UBSan stops complaining.
+        for i in 0..<result.len: result[i] = cast[seq[byte]](result)[i] != 0.byte
+      elif T is range:
+        for i in 0..<result.len: result[i] = clamp(result[i], low(T), high(T))
+else:
+  proc mutateByteSizedSeq*[T: ByteSized and not range](value: sink seq[T]; userMax, sizeIncreaseHint: int;
+      r: var Rand): seq[T] =
+    if r.rand(0..20) == 0:
+      result = @[]
+    else:
+      let oldSize = value.len
+      result = value
+      result.setLen(max(1, oldSize + r.rand(sizeIncreaseHint)))
+      result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
+      when T is bool:
+        # Fix bool values so UBSan stops complaining.
+        for i in 0..<result.len: result[i] = cast[seq[byte]](result)[i] != 0.byte
+      elif T is range:
+        for i in 0..<result.len: result[i] = clamp(result[i], low(T), high(T))
+
+  proc mutateString*(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string =
+    if r.rand(0..20) == 0:
+      result = ""
+    else:
+      let oldSize = value.len
+      result = value
+      result.setLen(max(1, oldSize + r.rand(sizeIncreaseHint)))
+      result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
 
 proc mutateUtf8String*(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string {.inline.} =
   result = mutateString(value, userMax, sizeIncreaseHint, r)
