@@ -98,6 +98,8 @@ interesting values, like file signatures or to limit the search space.
 when defined(runFuzzTests):
   type
     ClientId = distinct int
+
+  proc `==`(a, b: ClientId): bool {.borrow.}
 else:
   type
     ClientId = int

@@ -7,7 +7,7 @@ license = "Apache License 2.0"
 srcDir = "."
 skipDirs = @["tests", "benchmarks", "examples", "experiments"]
 
-requires "nim >= 1.4.0"
+requires "nim >= 1.2.0"
 
 proc buildBinary(name: string, srcDir = "./", params = "", lang = "c") =
   if not dirExists "build":
