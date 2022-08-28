@@ -9,7 +9,7 @@ find edge cases and trigger bugs more effectively.
 Dr. Chaos extends the Nim interface to LLVM/Clang libFuzzer, an in-process,
 coverage-guided, evolutionary fuzzing engine. And adds support for
 [structured fuzzing](https://github.com/google/fuzzing/blob/master/docs/structure-aware-fuzzing.md).
-The user should define, as a parameter to the target function, the input type and the
+The user should define the input type, as a parameter to the target function and the
 fuzzer is responsible for providing valid inputs. Behind the scenes it uses value profiling
 to guide the fuzzer past these comparisons much more efficiently than simply hoping to
 stumble on the exact sequence of bytes by chance.
@@ -64,8 +64,6 @@ performance and clarity reasons only runs on compound types such as
 object/tuple/ref/seq/string/array/set and by exception distinct types.
 
 ```nim
-import std/random
-
 proc postProcess(x: var ContentNode; r: var Rand) =
   if x.kind == Text:
     x.textStr = "The man the professor the student has studies Rome."
@@ -78,10 +76,16 @@ control of the mutation procedure, like uncompressing a `seq[byte]` then calling
 `runMutator` on the raw data and compressing the output again.
 
 ```nim
+func myTarget(x: seq[byte]) =
+  var data = uncompress(x)
+  ...
+
 proc myMutator(x: var seq[byte]; sizeIncreaseHint: Natural; r: var Rand) =
-  var tmp = uncompress(x)
-  runMutator(tmp, sizeIncreaseHint, r)
-  x = compress(tmp)
+  var data = uncompress(x)
+  runMutator(data, sizeIncreaseHint, r)
+  x = compress(data)
+
+customMutator(myTarget, myMutator)
 ```
 
 ### User-defined mutate procs
@@ -102,11 +106,13 @@ else:
 import drchaos/mutator
 
 const
-  id1 = 0.ClientId
-  id2 = 1.ClientId
+  idA = 0.ClientId
+  idB = 2.ClientId
+  idC = 4.ClientId
 
 proc mutate(value: var ClientId; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
   # use `rand()` to return a new value.
+  repeatMutate(r.sample([idA, idB, idC]))
 ```
 
 For aiding the creation of mutate functions, mutators for every supported type are
