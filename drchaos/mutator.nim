@@ -527,7 +527,7 @@ proc myMutator*[T](x: var T; sizeIncreaseHint: Natural; r: var Rand) {.nimcall.}
   when T is PostProcessTypes:
     runPostProcessor(x, MaxInitializeDepth, r)
 
-template initImpl*() =
+template initializeImpl*() =
   proc NimMain() {.importc: "NimMain".}
 
   proc LLVMFuzzerInitialize(): cint {.exportc.} =
@@ -601,7 +601,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
 proc commonImpl(target, mutator: NimNode): NimNode =
   let typ = getTypeImpl(target).params[^1][1]
   result = getAst(mutatorImpl(target, mutator, typ))
-  result.add getAst(initImpl())
+  result.add getAst(initializeImpl())
 
 macro defaultMutator*(target: proc) =
   ## Implements the interface for running LibFuzzer's fuzzing loop, where func `target`'s
