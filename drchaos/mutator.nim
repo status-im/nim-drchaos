@@ -63,7 +63,7 @@ proc mutateEnum*(index, itemCount: int; r: var Rand): int =
   if itemCount <= 1: 0
   else: (index + 1 + r.rand(itemCount - 1)) mod itemCount
 
-proc newInput*[T](sizeIncreaseHint: int; r: var Rand): T =
+proc newInput*[T](sizeIncreaseHint: Natural; r: var Rand): T =
   ## Creates new input with a chance of returning default(T).
   runMutator(result, sizeIncreaseHint, false, r)
 
