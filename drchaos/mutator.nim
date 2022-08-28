@@ -11,9 +11,6 @@ when (NimMajor, NimMinor, NimPatch) < (1, 7, 1):
       result = cast[T](r.next shr (sizeof(uint64) - sizeof(T))*8)
 
 when not defined(fuzzerStandalone):
-  proc LLVMFuzzerInitialize(): cint {.exportc.} =
-    {.emit: "N_CDECL(void, NimMain)(void); NimMain();".}
-
   proc mutate(data: ptr UncheckedArray[byte], len, maxLen: int): int {.
       importc: "LLVMFuzzerMutate".}
 
@@ -525,12 +522,18 @@ proc runPostProcessor*[S, T](x: var array[S, T], depth: int; r: var Rand) =
         for i in low(x)..high(x):
           runPostProcessor(x[i], depth-1, r)
 
-proc myMutator[T](x: var T; sizeIncreaseHint: Natural; r: var Rand) {.nimcall.} =
+proc myMutator*[T](x: var T; sizeIncreaseHint: Natural; r: var Rand) {.nimcall.} =
   runMutator(x, sizeIncreaseHint, true, r)
   when T is PostProcessTypes:
     runPostProcessor(x, MaxInitializeDepth, r)
 
-template mutatorImpl(target, mutator, typ: untyped) =
+template initImpl*() =
+  proc NimMain() {.importc: "NimMain".}
+
+  proc LLVMFuzzerInitialize(): cint {.exportc.} =
+    NimMain()
+
+template mutatorImpl*(target, mutator, typ: untyped) =
   {.pragma: nocov, codegenDecl: "__attribute__((no_sanitize(\"coverage\"))) $# $#$#".}
   {.pragma: nosan, codegenDecl: "__attribute__((disable_sanitizer_instrumentation)) $# $#$#".}
 
@@ -598,6 +601,7 @@ template mutatorImpl(target, mutator, typ: untyped) =
 proc commonImpl(target, mutator: NimNode): NimNode =
   let typ = getTypeImpl(target).params[^1][1]
   result = getAst(mutatorImpl(target, mutator, typ))
+  result.add getAst(initImpl())
 
 macro defaultMutator*(target: proc) =
   ## Implements the interface for running LibFuzzer's fuzzing loop, where func `target`'s
