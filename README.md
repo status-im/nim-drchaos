@@ -16,8 +16,9 @@ stumble on the exact sequence of bytes by chance.
 
 For most cases, it is fairly trivial to define a data type and a target function that
 performs some operations and checks if the invariants expressed as assert conditions still
-hold. Then call `defaultMutator` with that function as parameter. That can be as basic as
-defining a range type and ensuring your library doesn't crash or complex as shown bellow.
+hold. See [What makes a good fuzz target](https://github.com/google/fuzzing/blob/master/docs/good-fuzz-target.md)
+for more information. Then call `defaultMutator` with that function as parameter. That can be as basic as
+defining a range type and ensuring the software under test doesn't crash or complex as shown bellow.
 
 ### Example
 
@@ -52,7 +53,7 @@ defaultMutator(fuzzTarget)
 Dr. Chaos will generate millions of inputs and run `fuzzTarget` under a few seconds.
 More articulate examples, such as fuzzing a graph library are in the `examples/` directory.
 
-Defining a `==` proc for your input type is necessary.
+Defining a `==` proc for the input type is necessary.
 
 ### Post-processors
 
