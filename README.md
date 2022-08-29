@@ -127,7 +127,7 @@ exported by `drchaos/mutator`.
 
 Dr. Chaos has several advantages over solutions derived from
 [FuzzDataProvider](https://github.com/google/fuzzing/blob/master/docs/split-inputs.md)
-which strugle with dynamic types that in particular are nested.
+which struggle with dynamic types that in particular are nested.
 For a better explanation read what
 [Fuzzcheck's author](https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md)
 has to say.
