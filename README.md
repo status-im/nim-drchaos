@@ -1,7 +1,5 @@
 # Dr. Chaos
 
-A powerful and easy-to-use fuzzing framework in Nim for C/C++/Obj-C targets.
-
 Fuzzing is an automated bug finding technique, where randomized inputs are fed to a target
 program in order to get it to crash. With fuzzing, you can increase your test coverage to
 find edge cases and trigger bugs more effectively.
@@ -124,6 +122,15 @@ exported by `drchaos/mutator`.
 
 - Polymorphic types, missing serialization support.
 - References with cycles. A `.noFuzz` custom pragma will be added soon for cursors.
+
+## Why choose Dr. Chaos
+
+Dr. Chaos has several advantages over solutions derived from
+[FuzzDataProvider](https://github.com/google/fuzzing/blob/master/docs/split-inputs.md)
+which strugle with dynamic types that in particular are nested.
+For a better explanation read what
+[Fuzzcheck's author](https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md)
+has to say.
 
 ## License
 
