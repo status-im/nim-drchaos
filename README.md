@@ -126,12 +126,11 @@ exported by `drchaos/mutator`.
 
 ## Why choose Dr. Chaos
 
-Dr. Chaos has several advantages over solutions derived from
+Dr. Chaos has several advantages over frameworks derived from
 [FuzzDataProvider](https://github.com/google/fuzzing/blob/master/docs/split-inputs.md)
-which struggle with dynamic types that in particular are nested.
-For a better explanation read what
-[Fuzzcheck's author](https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md)
-has to say.
+which struggle with dynamic types that in particular are nested. For a better explanation
+read an article written by the author of
+[Fuzzcheck](https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md).
 
 ## License
 
