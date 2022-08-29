@@ -17,7 +17,7 @@ stumble on the exact sequence of bytes by chance.
 For most cases, it is fairly trivial to define a data type and a target function that
 performs some operations and checks if the invariants expressed as assert conditions still
 hold. See [What makes a good fuzz target](https://github.com/google/fuzzing/blob/master/docs/good-fuzz-target.md)
-for more information. Then call `defaultMutator` with that function as parameter. That can be as basic as
+for more information. Then call `defaultMutator` with that function as parameter. That fuzz target can be as basic as
 defining a fixed-size type and ensuring the software under test doesn't crash or complex as shown bellow.
 
 ### Example
