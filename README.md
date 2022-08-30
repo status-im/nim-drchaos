@@ -18,11 +18,23 @@ For most cases, it is fairly trivial to define a data type and a target function
 performs some operations and checks if the invariants expressed as assert conditions still
 hold. See [What makes a good fuzz target](https://github.com/google/fuzzing/blob/master/docs/good-fuzz-target.md)
 for more information. Then call `defaultMutator` with that function as parameter. That fuzz target can be as basic as
-defining a fixed-size type and ensuring the software under test doesn't crash or complex as shown bellow.
+defining a fixed-size type and ensuring the software under test doesn't crash like:
 
-### Example
+```nim
+import drchaos
 
-A simple but somewhat contrived example looks like this:
+proc fuzzMe(s: string, a, b, c: int32) =
+  if a == 0xd0d0caca'i32 and b == 0x11111111'i32 and c == 0x22222222'i32:
+    if s.len == 100: quit(1)
+
+func fuzzTarget(data: (string, int32, int32, int32)) =
+  let (s, a, b, c) = data
+  fuzzMe(s, a, b, c)
+
+defaultMutator(fuzzTarget)
+```
+
+Or complex as shown bellow:
 
 ```nim
 import drchaos
@@ -123,6 +135,7 @@ exported by `drchaos/mutator`.
 
 - Polymorphic types, missing serialization support.
 - References with cycles. A `.noFuzz` custom pragma will be added soon for cursors.
+- Object variants work only with the lastest memory management model `--mm:arc/orc`.
 
 ## Why choose Dr. Chaos
 
