@@ -342,9 +342,9 @@ proc pick[T: object](x: var T; sizeIncreaseHint: int; enforceChanges: bool;
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     pickMutate(mutate(x, sizeIncreaseHint, enforceChanges, r))
   else:
-    template pickFunc(x: untyped) =
+    template pickImpl(x: untyped) =
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
-    assignObjectImpl(x, pickFunc)
+    assignObjectImpl(x, pickImpl)
 
 proc pick[T](x: var ref T; sizeIncreaseHint: int; enforceChanges: bool;
     r: var Rand; res: var int) =
@@ -496,10 +496,10 @@ proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand) =
           for k, v in mpairs(x):
             runPostProcessor(v, depth-1, r)
     else:
-      template runPostFunc(x: untyped) =
+      template runPostProcessorImpl(x: untyped) =
         when typeof(x) is PostProcessTypes:
           runPostProcessor(x, depth-1, r)
-      assignObjectImpl(x, runPostFunc)
+      assignObjectImpl(x, runPostProcessorImpl)
 
 proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand) =
   if depth < 0:
@@ -566,12 +566,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
 
   proc testOneInputImpl[T](x: var T; data: openArray[byte]) =
     if data.len > 1: # Ignore '\n' passed by LibFuzzer.
-      try:
-        FuzzTarget(target)(getInput(x, data))
-      finally:
-        # Call Nim's compiler api to report unhandled exceptions. See: Nim#18215
-        when compileOption("exceptions", "goto"):
-          {.emit: "nimTestErrorFlag();".}
+      FuzzTarget(target)(getInput(x, data))
 
   proc customMutatorImpl(x: var typ; data: openArray[byte]; maxLen: int;
       r: var Rand): int {.nosan.} =
@@ -589,14 +584,23 @@ template mutatorImpl*(target, mutator, typ: untyped) =
 
   proc LLVMFuzzerTestOneInput(data: ptr UncheckedArray[byte], len: int): cint {.exportc.} =
     result = 0
-    var x: typ
-    testOneInputImpl(x, toOpenArray(data, 0, len-1))
+    try:
+      var x: typ
+      testOneInputImpl(x, toOpenArray(data, 0, len-1))
+    finally:
+      # Call Nim's compiler api to report unhandled exceptions. See: Nim#18215
+      when compileOption("exceptions", "goto"):
+        {.emit: "nimTestErrorFlag();".}
 
   proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte], len, maxLen: int,
       seed: int64): int {.exportc.} =
-    var r = initRand(seed)
-    var x: typ
-    customMutatorImpl(x, toOpenArray(data, 0, len-1), maxLen, r)
+    try:
+      var r = initRand(seed)
+      var x: typ
+      result = customMutatorImpl(x, toOpenArray(data, 0, len-1), maxLen, r)
+    finally:
+      when compileOption("exceptions", "goto"):
+        {.emit: "nimTestErrorFlag();".}
 
 proc commonImpl(target, mutator: NimNode): NimNode =
   let typ = getTypeImpl(target).params[^1][1]

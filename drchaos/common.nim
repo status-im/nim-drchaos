@@ -65,7 +65,7 @@ proc foldObjectBody(tmpSym, typeNode, mFunc: NimNode): NimNode =
 
 macro assignObjectImpl*(output, mFunc: typed): untyped =
   ## This macro is used for safely mutating object fields with `mFunc`.
-  ## For case discriminators it makes a temporary and assigns it inside a
+  ## For case discriminators it makes a temporary and copies it inside a
   ## cast uncheckedAssign section. This ensures a =destroy call is generated.
   let typeSym = getTypeInst(output)
   result = newStmtList()
@@ -390,9 +390,9 @@ proc fromData*[T: object](data: openArray[byte]; pos: var int; output: var T) =
   when supportsCopyMem(T):
     read(data, pos, output)
   else:
-    template fromDataFunc(x: untyped) =
+    template fromDataImpl(x: untyped) =
       fromData(data, pos, x)
-    assignObjectImpl(output, fromDataFunc)
+    assignObjectImpl(output, fromDataImpl)
 
 proc toData*[T: distinct](data: var openArray[byte]; pos: var int; input: T) =
   toData(data, pos, input.distinctBase)
