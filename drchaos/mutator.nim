@@ -73,14 +73,14 @@ proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHin
   let previousSize = previous.byteSize
   while value.len > 0 and r.rand(bool):
     let index = rand(r, value.high)
-    echo " deleting: ", value[index]
-    value.delete(index)
+    echo " deleting i", index, ": ", value[index]
+    value.del(index)
   var currentSize = value.byteSize
   template remainingSize: untyped = sizeIncreaseHint-currentSize+previousSize
   while value.len < userMax and remainingSize > 0 and r.rand(bool):
     let index = rand(r, value.len)
     value.insert(newInput[T](remainingSize, r), index)
-    echo "inserted: ", value[index]
+    echo "inserted i", index, ": ", value[index]
     currentSize = value.byteSize
   if value != previous:
     result = true
@@ -91,7 +91,7 @@ proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHin
   else:
     let index = rand(r, value.high)
     runMutator(value[index], remainingSize, true, r)
-    echo "mutated: ", value[index]
+    echo "mutated i", index, ": ", value[index]
     result = value != previous # runMutator item may still fail to generate a new mutation.
 
 when defined(fuzzerStandalone):
