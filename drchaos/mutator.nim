@@ -573,7 +573,10 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     if data.len > 1:
       #var pos = 1
       #fromData(data, pos, x)
-      x = getInput(x, data)
+      when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
+        x = move getInput(x, data)
+      else:
+        x = getInput(x, data)
     FuzzMutator(mutator)(x, maxLen-x.byteSize, r)
     result = x.byteSize+1 # +1 for the skipped byte
     if result <= maxLen:
