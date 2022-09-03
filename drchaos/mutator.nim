@@ -410,6 +410,7 @@ proc runMutator*[T: tuple|object](x: var T; sizeIncreaseHint: int; enforceChange
       var s: Sampler[int]
       sample(x, s, r, res)
       res = s.selected
+      #res = 1
       echo "obj target: ", res
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
@@ -593,9 +594,9 @@ template mutatorImpl*(target, mutator, typ: untyped) =
       r: var Rand): int {.nosan.} =
     if data.len > 1:
       x = mgetInput(x, data)
+    echo "step: ", step, " input: ", x
     FuzzMutator(mutator)(x, maxLen-x.byteSize, r)
-    echo "step: ", step, " ", x.kind
-    echo " complete: ", x
+    echo " new mutation: ", x
     result = x.byteSize+1 # +1 for the skipped byte
     if result <= maxLen:
       setInput(x, data, result)
