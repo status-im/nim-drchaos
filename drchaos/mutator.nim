@@ -1,6 +1,9 @@
 import std/[random, macros, setutils, enumutils, typetraits, options]
 import common, private/[sampler, utf8fix]
 
+var
+  step = 0
+
 when (NimMajor, NimMinor, NimPatch) < (1, 7, 1):
   proc rand*[T: Ordinal](r: var Rand; t: typedesc[T]): T =
     when T is range or T is enum:
@@ -62,27 +65,33 @@ proc mutateEnum*(index, itemCount: int; r: var Rand): int =
 
 proc newInput*[T](sizeIncreaseHint: Natural; r: var Rand): T =
   ## Creates new input with a chance of returning default(T).
+  echo "new input!"
   runMutator(result, sizeIncreaseHint, false, r)
 
 proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHint: int;
     r: var Rand): bool =
   let previousSize = previous.byteSize
   while value.len > 0 and r.rand(bool):
-    value.delete(rand(r, value.high))
+    let index = rand(r, value.high)
+    echo " deleting: ", value[index]
+    value.delete(index)
   var currentSize = value.byteSize
   template remainingSize: untyped = sizeIncreaseHint-currentSize+previousSize
   while value.len < userMax and remainingSize > 0 and r.rand(bool):
     let index = rand(r, value.len)
     value.insert(newInput[T](remainingSize, r), index)
+    echo "inserted: ", value[index]
     currentSize = value.byteSize
   if value != previous:
     result = true
   elif value.len == 0:
     value.add(newInput[T](remainingSize, r))
+    echo "added: ", value[0]
     result = true
   else:
     let index = rand(r, value.high)
     runMutator(value[index], remainingSize, true, r)
+    echo "mutated: ", value[index]
     result = value != previous # runMutator item may still fail to generate a new mutation.
 
 when defined(fuzzerStandalone):
@@ -179,6 +188,7 @@ template repeatMutate*(call: untyped) =
     for i in 1..10:
       value = call
       if not enforceChanges or value != tmp: return
+      echo "mutating again!"
 
 template repeatMutateInplace*(call: untyped) =
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
@@ -292,6 +302,7 @@ template pickMutate(call: untyped) =
   if res > 0:
     dec res
     if res == 0:
+      echo "picked: ", x
       call
 
 proc pick[T: distinct](x: var T; sizeIncreaseHint: int; enforceChanges: bool;
@@ -399,6 +410,7 @@ proc runMutator*[T: tuple|object](x: var T; sizeIncreaseHint: int; enforceChange
       var s: Sampler[int]
       sample(x, s, r, res)
       res = s.selected
+      echo "obj target: ", res
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
 proc runMutator*[T](x: var ref T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
@@ -422,6 +434,7 @@ proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges
       var s: Sampler[int]
       sample(x, s, r, res)
       res = s.selected
+      echo "arr target: ", res
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
 proc runPostProcessor*(x: var string, depth: int; r: var Rand)
@@ -524,8 +537,8 @@ proc runPostProcessor*[S, T](x: var array[S, T], depth: int; r: var Rand) =
 
 proc myMutator*[T](x: var T; sizeIncreaseHint: Natural; r: var Rand) {.nimcall.} =
   runMutator(x, sizeIncreaseHint, true, r)
-  when T is PostProcessTypes:
-    runPostProcessor(x, MaxInitializeDepth, r)
+  #when T is PostProcessTypes:
+    #runPostProcessor(x, MaxInitializeDepth, r)
 
 template initializeImpl*() =
   proc NimMain() {.importc: "NimMain".}
@@ -545,13 +558,21 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     buffer: seq[byte] = @[0xf1'u8]
     cached: typ
 
-  proc getInput(x: var typ; data: openArray[byte]): var typ {.nocov, nosan.} =
+  proc getInput(x: var typ; data: openArray[byte]): lent typ {.nocov, nosan.} =
     if equals(data, buffer):
       result = cached
     else:
       var pos = 1
       fromData(data, pos, x)
       result = x
+
+  proc mgetInput(x: var typ; data: openArray[byte]): typ {.nocov, nosan.} =
+    if equals(data, buffer):
+      result = move cached
+    else:
+      var pos = 1
+      fromData(data, pos, x)
+      result = move x
 
   proc setInput(x: var typ; data: openArray[byte]; len: int) {.inline.} =
     setLen(buffer, len)
@@ -571,10 +592,10 @@ template mutatorImpl*(target, mutator, typ: untyped) =
   proc customMutatorImpl(x: var typ; data: openArray[byte]; maxLen: int;
       r: var Rand): int {.nosan.} =
     if data.len > 1:
-      #var pos = 1
-      #fromData(data, pos, x)
-      x = getInput(x, data)
+      x = mgetInput(x, data)
     FuzzMutator(mutator)(x, maxLen-x.byteSize, r)
+    echo "step: ", step, " ", x.kind
+    echo " complete: ", x
     result = x.byteSize+1 # +1 for the skipped byte
     if result <= maxLen:
       setInput(x, data, result)
@@ -595,6 +616,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
   proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte], len, maxLen: int,
       seed: int64): int {.exportc.} =
     try:
+      inc step
       var r = initRand(seed)
       var x: typ
       result = customMutatorImpl(x, toOpenArray(data, 0, len-1), maxLen, r)

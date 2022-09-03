@@ -11,6 +11,8 @@ template getFieldValue(mFunc, tmpSym, fieldSym) =
 template getKindValue(mFunc, tmpSym, kindSym) =
   var kindTmp = tmpSym.kindSym
   mFunc(kindTmp)
+  if kindTmp != tmpSym.kindSym:
+    echo "before: ", tmpSym, " after: ", kindTmp
   {.cast(uncheckedAssign).}:
     tmpSym.kindSym = kindTmp
 
