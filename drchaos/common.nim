@@ -331,7 +331,7 @@ proc toData*[K, V](data: var openArray[byte]; pos: var int; input: (Table[K, V]|
 
 proc fromData*[K, V](data: openArray[byte]; pos: var int; output: var (Table[K, V]|OrderedTable[K, V])) =
   let len = readInt32(data, pos).int
-  for i in 0 ..< len:
+  for i in 0..<len:
     var key: K
     fromData(data, pos, key)
     fromData(data, pos, mgetOrPut(output, key, default(V)))

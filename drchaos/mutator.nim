@@ -571,8 +571,6 @@ template mutatorImpl*(target, mutator, typ: untyped) =
   proc customMutatorImpl(x: var typ; data: openArray[byte]; maxLen: int;
       r: var Rand): int {.nosan.} =
     if data.len > 1:
-      #var pos = 1
-      #fromData(data, pos, x)
       when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
         x = move getInput(x, data)
       else:
