@@ -151,7 +151,7 @@ read an article written by the author of
 ### Nim reference implementation
 
 * [use-after-free bugs in object variants](https://github.com/nim-lang/Nim/issues/20305)
-* [openArray on empty seq triggers UB](openArray on empty seq triggers UB)
+* [openArray on empty seq triggers UB](https://github.com/nim-lang/Nim/issues/20294)
 
 ## License
 
