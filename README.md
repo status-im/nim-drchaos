@@ -142,7 +142,7 @@ proc toData(data: var openArray[byte]; pos: var int; input: T)
 proc byteSize(x: T): int {.inline.} ## The size that will be consumed by the serialized type in bytes.
 ```
 
-This is only necessary for destructor-based types.
+This is only necessary for destructor-based types. `mutate`, `default` and `==` must also be defined.
 `drchaos/common` exports read/write procs that assist with this task.
 
 ### What's not supported

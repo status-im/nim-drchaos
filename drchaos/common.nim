@@ -76,10 +76,10 @@ type
   EncodingDefect = object of Defect
   DecodingDefect = object of Defect
 
-proc raiseEncoding() {.noinline, noreturn.} =
+proc raiseEncoding*() {.noinline, noreturn.} =
   raise newException(EncodingDefect, "Can't write bytes to buffer.")
 
-proc raiseDecoding() {.noinline, noreturn.} =
+proc raiseDecoding*() {.noinline, noreturn.} =
   raise newException(DecodingDefect, "Can't read bytes from buffer.")
 
 proc equals*(a, b: openArray[byte]): bool =

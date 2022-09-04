@@ -11,7 +11,7 @@ when (NimMajor, NimMinor, NimPatch) < (1, 7, 1):
       result = cast[T](r.next shr (sizeof(uint64) - sizeof(T))*8)
 
 when not defined(fuzzerStandalone):
-  proc mutate(data: ptr UncheckedArray[byte], len, maxLen: int): int {.
+  proc mutate*(data: ptr UncheckedArray[byte], len, maxLen: int): int {.
       importc: "LLVMFuzzerMutate".}
 
 template `+!`(p: pointer, s: int): untyped =
@@ -173,7 +173,7 @@ proc mutateArray*[S, T](value: array[S, T]; r: var Rand): array[S, T] {.inline.}
 
 template repeatMutate*(call: untyped) =
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-    discard
+    reset(value)
   else:
     var tmp = value
     for i in 1..10:
@@ -182,7 +182,7 @@ template repeatMutate*(call: untyped) =
 
 template repeatMutateInplace*(call: untyped) =
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-    discard
+    reset(value)
   else:
     var tmp {.inject.} = value
     for i in 1..10:
