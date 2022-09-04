@@ -137,11 +137,13 @@ exported by `drchaos/mutator`.
 User overloads must use the following proc signatures:
 
 ```nim
-proc fromData*(data: openArray[byte]; pos: var int; output: var T)
-proc toData*(data: var openArray[byte]; pos: var int; input: T)
+proc fromData(data: openArray[byte]; pos: var int; output: var T)
+proc toData(data: var openArray[byte]; pos: var int; input: T)
+proc byteSize(x: T): int {.inline.} ## The size that will be consumed by the serialized type in bytes.
 ```
 
 This is only necessary for destructor-based types.
+`drchaos/common` exports read/write procs that assist with this task.
 
 ### What's not supported
 
