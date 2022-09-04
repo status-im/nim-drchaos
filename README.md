@@ -146,6 +146,13 @@ which struggle with dynamic types that in particular are nested. For a better ex
 read an article written by the author of
 [Fuzzcheck](https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md).
 
+## Bugs found with help of the library
+
+### Nim reference implementation
+
+* [use-after-free bugs in object variants](https://github.com/nim-lang/Nim/issues/20305)
+* [openArray on empty seq triggers UB](openArray on empty seq triggers UB)
+
 ## License
 
 Licensed and distributed under either of
