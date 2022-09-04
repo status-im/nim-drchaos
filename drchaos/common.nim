@@ -85,7 +85,7 @@ proc raiseDecoding() {.noinline, noreturn.} =
 proc equals*(a, b: openArray[byte]): bool =
   if a.len != b.len:
     result = false
-  else: result = equalMem(addr a, addr b, a.len)
+  else: result = equalMem(unsafeAddr a, unsafeAddr b, a.len)
 
 proc byteSize*(x: string): int {.inline.}
 proc byteSize*[S, T](x: array[S, T]): int {.inline.}
