@@ -173,7 +173,7 @@ proc mutateArray*[S, T](value: array[S, T]; r: var Rand): array[S, T] {.inline.}
 
 template repeatMutate*(call: untyped) =
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-    reset(value)
+    value = default(typeof(value))
   else:
     var tmp = value
     for i in 1..10:
@@ -182,7 +182,7 @@ template repeatMutate*(call: untyped) =
 
 template repeatMutateInplace*(call: untyped) =
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-    reset(value)
+    value = default(typeof(value))
   else:
     var tmp {.inject.} = value
     for i in 1..10:
