@@ -132,7 +132,18 @@ proc mutate(value: var ClientId; sizeIncreaseHint: int; enforceChanges: bool; r:
 For aiding the creation of mutate functions, mutators for every supported type are
 exported by `drchaos/mutator`.
 
-## What's not supported
+### User-defined serializers
+
+User overloads must use the following proc signatures:
+
+```nim
+proc fromData*(data: openArray[byte]; pos: var int; output: var T)
+proc toData*(data: var openArray[byte]; pos: var int; input: T)
+```
+
+This is only necessary for destructor-based types.
+
+### What's not supported
 
 - Polymorphic types, missing serialization support.
 - References with cycles. A `.noFuzz` custom pragma will be added soon for cursors.
