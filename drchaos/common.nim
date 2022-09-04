@@ -168,7 +168,7 @@ proc write*[T](data: var openArray[byte], pos: var int, input: T) =
 proc readData*(data: openArray[byte], pos: var int, buffer: pointer, bufLen: int): int =
   result = min(bufLen, data.len - pos)
   if result > 0:
-    copyMem(buffer, data[pos].addr, result)
+    copyMem(buffer, data[pos].unsafeAddr, result)
     inc(pos, result)
   else:
     result = 0

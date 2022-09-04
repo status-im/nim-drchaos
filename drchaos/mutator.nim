@@ -558,7 +558,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     var pos = 1
     toData(buffer, pos, x)
     assert pos == len
-    copyMem(addr data, addr buffer[0], len)
+    copyMem(unsafeAddr data, addr buffer[0], len)
     cached = move x
 
   proc clearBuffer() {.inline.} =
@@ -604,7 +604,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
         {.emit: "nimTestErrorFlag();".}
 
 proc commonImpl(target, mutator: NimNode): NimNode =
-  let typ = getTypeImpl(target).params[^1][1]
+  let typ = getImpl(target).params[^1][1]
   result = getAst(mutatorImpl(target, mutator, typ))
   result.add getAst(initializeImpl())
 
