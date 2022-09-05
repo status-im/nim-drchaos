@@ -594,12 +594,14 @@ template mutatorImpl*(target, mutator, typ: untyped) =
   proc clearBuffer() {.inline.} =
     setLen(buffer, 1)
 
-  proc testOneInputImpl[T](x: var T; data: openArray[byte]) =
+  proc testOneInputImpl(data: openArray[byte]) =
+    var x: typ
     if data.len > 1: # Ignore '\n' passed by LibFuzzer.
       FuzzTarget(target)(getInput(x, data))
 
-  proc customMutatorImpl(x: var typ; data: openArray[byte]; maxLen: int;
-      r: var Rand): int {.nosan.} =
+  proc customMutatorImpl(data: openArray[byte]; maxLen: int, seed: int64): int {.nosan.} =
+    var r = initRand(seed)
+    var x: typ
     if data.len > 1:
       when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
         x = move getInput(x, data)
@@ -617,8 +619,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
   proc LLVMFuzzerTestOneInput(data: ptr UncheckedArray[byte], len: int): cint {.exportc.} =
     result = 0
     try:
-      var x: typ
-      testOneInputImpl(x, toOpenArray(data, 0, len-1))
+      testOneInputImpl(toOpenArray(data, 0, len-1))
     finally:
       # Call Nim's compiler api to report unhandled exceptions. See: Nim#18215
       when compileOption("exceptions", "goto"):
@@ -627,9 +628,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
   proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte], len, maxLen: int,
       seed: int64): int {.exportc.} =
     try:
-      var r = initRand(seed)
-      var x: typ
-      result = customMutatorImpl(x, toOpenArray(data, 0, len-1), maxLen, r)
+      result = customMutatorImpl(toOpenArray(data, 0, len-1), maxLen, seed)
     finally:
       when compileOption("exceptions", "goto"):
         {.emit: "nimTestErrorFlag();".}
