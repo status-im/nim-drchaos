@@ -19,7 +19,6 @@ proc add(parent: HtmlNode; kid: sink HtmlNode) = parent.kids.add kid
 from std/xmltree import addEscaped
 
 proc toString(n: HtmlNode; result: var string) =
-  if n.isNil: return
   case n.tag
   of text:
     result.addEscaped n.s
@@ -38,6 +37,9 @@ proc `$`(n: HtmlNode): string =
 
 import drchaos
 
+proc default(_: typedesc[HtmlNode]): HtmlNode =
+  HtmlNode(tag: th)
+
 func `==`(a, b: HtmlNode): bool =
   if a.isNil:
     if b.isNil: return true
@@ -50,7 +52,6 @@ func `==`(a, b: HtmlNode): bool =
     else: return a.kids == b.kids
 
 func fuzzTarget(x: HtmlNode) =
-  if x.isNil: return
   let data = HtmlNode(tag: head, kids: @[
     HtmlNode(tag: text, s: "mychild"),
     HtmlNode(tag: body)

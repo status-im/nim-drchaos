@@ -231,7 +231,7 @@ proc mutate*[S; T: SomeNumber|bool|char](value: var array[S, T]; sizeIncreaseHin
 
 proc mutate*[T](value: var Option[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-    discard
+    value = none(T)
   else:
     if not isSome(value):
       value = some(default(T))
@@ -389,11 +389,12 @@ proc runMutator*[T](x: var set[T]; sizeIncreaseHint: int; enforceChanges: bool; 
   mutate(x, sizeIncreaseHint, enforceChanges, r)
 
 proc runMutator*[T: tuple|object](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
+  mixin default
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     mutate(x, sizeIncreaseHint, enforceChanges, r)
   else:
     if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-      discard
+      x = default(T)
     else:
       var res = 0
       var s: Sampler[int]
@@ -402,21 +403,23 @@ proc runMutator*[T: tuple|object](x: var T; sizeIncreaseHint: int; enforceChange
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
 proc runMutator*[T](x: var ref T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
+  mixin default
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     mutate(x, sizeIncreaseHint, enforceChanges, r)
   else:
     if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-      discard
+      x = default(typeof(x))
     else:
       if x == nil: new(x)
       runMutator(x[], sizeIncreaseHint, enforceChanges, r)
 
 proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
+  mixin default
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     mutate(x, sizeIncreaseHint, enforceChanges, r)
   else:
     if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-      discard
+      x = default(typeof(x))
     else:
       var res = 0
       var s: Sampler[int]
