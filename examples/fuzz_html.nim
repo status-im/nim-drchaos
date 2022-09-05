@@ -58,6 +58,9 @@ when isMainModule:
       HtmlNode(tag: text, s: "Hello World!"),
     ])
     # Here you could feed `$x` to htmlparser.parseHtml and make sure it doesn't crash.
+    #var errors: seq[string] = @[]
+    #let tree = parseHtml($x, "unknown_html_doc", errors)
+    #doAssert errors.len == 0
     doAssert $x != $data
 
   defaultMutator(fuzzTarget)
