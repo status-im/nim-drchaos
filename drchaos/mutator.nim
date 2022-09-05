@@ -172,6 +172,7 @@ proc mutateArray*[S, T](value: array[S, T]; r: var Rand): array[S, T] {.inline.}
     for i in low(result)..high(result): result[i] = clamp(result[i], low(T), high(T))
 
 template repeatMutate*(call: untyped) =
+  mixin default
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
     value = default(typeof(value))
   else:
@@ -181,6 +182,7 @@ template repeatMutate*(call: untyped) =
       if not enforceChanges or value != tmp: return
 
 template repeatMutateInplace*(call: untyped) =
+  mixin default
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
     value = default(typeof(value))
   else:
@@ -230,12 +232,24 @@ proc mutate*[S; T: SomeNumber|bool|char](value: var array[S, T]; sizeIncreaseHin
   repeatMutate(mutateArray(value, r))
 
 proc mutate*[T](value: var Option[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
+  mixin default
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
     value = none(T)
   else:
     if not isSome(value):
       value = some(default(T))
     runMutator(value.get, sizeIncreaseHint, enforceChanges, r)
+
+proc sample(x: bool; s: var Sampler; r: var Rand; res: var int)
+proc sample(x: char; s: var Sampler; r: var Rand; res: var int)
+proc sample[T: enum](x: T; s: var Sampler; r: var Rand; res: var int)
+proc sample[T](x: set[T]; s: var Sampler; r: var Rand; res: var int)
+proc sample[T: SomeNumber](x: T; s: var Sampler; r: var Rand; res: var int)
+proc sample[T](x: seq[T]; s: var Sampler; r: var Rand; res: var int)
+proc sample(x: string; s: var Sampler; r: var Rand; res: var int)
+proc sample[T: tuple|object](x: T; s: var Sampler; r: var Rand; res: var int)
+proc sample[T](x: ref T; s: var Sampler; r: var Rand; res: var int)
+proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int)
 
 template sampleAttempt(call: untyped) =
   inc res
@@ -287,6 +301,18 @@ proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int) =
   else:
     for i in low(x)..high(x):
       sample(x[i], s, r, res)
+
+proc pick(x: var bool; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick(x: var char; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T: enum](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T](x: var set[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T: SomeNumber](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T](x: var seq[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick(x: var string; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T: tuple](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T: object](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T](x: var ref T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
 
 template pickMutate(call: untyped) =
   if res > 0:
@@ -439,7 +465,7 @@ proc runPostProcessor*[T: distinct](x: var T, depth: int; r: var Rand) =
   # Allow post-processor functions for all distinct types.
   when compiles(postProcess(x, r)):
     if depth < 0:
-      when not supportsCopyMem(T): reset(x)
+      when not supportsCopyMem(T): `=destroy`(x)
     else:
       postProcess(x, r)
   else:
@@ -448,14 +474,14 @@ proc runPostProcessor*[T: distinct](x: var T, depth: int; r: var Rand) =
 
 proc runPostProcessor*(x: var string, depth: int; r: var Rand) =
   if depth < 0:
-    reset(x)
+    `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
 
 proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand) =
   if depth < 0:
-    reset(x)
+    `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -471,7 +497,7 @@ proc runPostProcessor*[T](x: var set[T], depth: int; r: var Rand) =
 
 proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): reset(x)
+    when not supportsCopyMem(T): `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -482,7 +508,7 @@ proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand) =
 
 proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): reset(x)
+    when not supportsCopyMem(T): `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -506,7 +532,7 @@ proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand) =
 
 proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand) =
   if depth < 0:
-    reset(x) # should be `=destroy`
+    `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -516,7 +542,7 @@ proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand) =
 
 proc runPostProcessor*[S, T](x: var array[S, T], depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): reset(x)
+    when not supportsCopyMem(T): `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
