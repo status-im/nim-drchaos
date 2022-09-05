@@ -53,9 +53,11 @@ when isMainModule:
       else: return a.kids == b.kids
 
   func fuzzTarget(x: HtmlNode) =
+    when defined(dumpFuzzInput): debugEcho(x)
     let data = HtmlNode(tag: head, kids: @[
       HtmlNode(tag: text, s: "Hello World!"),
     ])
+    # Here you could feed `$x` to htmlparser.parseHtml and make sure it doesn't crash.
     doAssert $x != $data
 
   defaultMutator(fuzzTarget)

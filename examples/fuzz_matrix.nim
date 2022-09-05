@@ -53,6 +53,8 @@ when isMainModule:
     zeros(M, N, float32)
 
   func fuzzTarget(x: Matrix32[2, 2]) =
+    when defined(dumpFuzzInput): debugEcho(x)
+    # Here you could multiply `x` with the identity matrix and make sure it doesn't change.
     doAssert x != eye(2, float32)
 
   defaultMutator(fuzzTarget)
