@@ -575,13 +575,20 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     buffer: seq[byte] = @[0xf1'u8]
     cached: typ
 
-  proc getInput(x: var typ; data: openArray[byte]): var typ {.nocov, nosan.} =
+  proc getInput(x: var typ; data: openArray[byte]): lent typ {.nocov, nosan.} =
     if equals(data, buffer):
       result = cached
     else:
       var pos = 1
       fromData(data, pos, x)
       result = x
+
+  proc mgetInput(x: var typ; data: openArray[byte]) =
+    if equals(data, buffer):
+      x = move cached
+    else:
+      var pos = 1
+      fromData(data, pos, x)
 
   proc setInput(x: var typ; data: openArray[byte]; len: int) {.inline.} =
     setLen(buffer, len)
@@ -604,10 +611,11 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     var x: typ
     if data.len > 1:
       when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
-        x = move getInput(x, data)
+        mgetInput(x, data)
       else:
         x = getInput(x, data)
-    else: x = default(typeof(x))
+    else:
+      x = default(typeof(x))
     FuzzMutator(mutator)(x, maxLen-x.byteSize, r)
     result = x.byteSize+1 # +1 for the skipped byte
     if result <= maxLen:

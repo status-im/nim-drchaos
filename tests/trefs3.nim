@@ -49,12 +49,6 @@ import drchaos
 proc default[M, N: static[int]](_: typedesc[Matrix32[M, N]]): Matrix32[M, N] =
   zeros(M, N, float32)
 
-#proc default(_: typedesc[OrderType]): OrderType =
-  #colMajor
-
-#proc default[M, N: static[int]](_: typedesc[ref array[N * M, float32]]): ref array[N * M, float32] =
-  #new result
-
 func fuzzTarget(x: Matrix32[2, 2]) =
   doAssert x != eye(2, float32)
 
