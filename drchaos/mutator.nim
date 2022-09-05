@@ -563,6 +563,7 @@ template initializeImpl*() =
     NimMain()
 
 template mutatorImpl*(target, mutator, typ: untyped) =
+  mixin default
   {.pragma: nocov, codegenDecl: "__attribute__((no_sanitize(\"coverage\"))) $# $#$#".}
   {.pragma: nosan, codegenDecl: "__attribute__((disable_sanitizer_instrumentation)) $# $#$#".}
 
@@ -604,6 +605,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
         x = move getInput(x, data)
       else:
         x = getInput(x, data)
+    else: x = default(typeof(x))
     FuzzMutator(mutator)(x, maxLen-x.byteSize, r)
     result = x.byteSize+1 # +1 for the skipped byte
     if result <= maxLen:
