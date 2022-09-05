@@ -69,7 +69,6 @@ proc mutate[M, N: static[int]](value: var Matrix32[M, N]; sizeIncreaseHint: int;
   repeatMutate(mutateMatrix32(move value, r))
 
 func fuzzTarget(x: Matrix32[2, 1]) =
-  let data = ones(2, 1)
-  doAssert x != data
+  doAssert x != ones(2, 1)
 
 defaultMutator(fuzzTarget)
