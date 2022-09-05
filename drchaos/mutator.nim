@@ -62,6 +62,8 @@ proc mutateEnum*(index, itemCount: int; r: var Rand): int =
 
 proc newInput*[T](sizeIncreaseHint: Natural; r: var Rand): T =
   ## Creates new input with a chance of returning default(T).
+  mixin default
+  result = default(T)
   runMutator(result, sizeIncreaseHint, false, r)
 
 proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHint: int;
