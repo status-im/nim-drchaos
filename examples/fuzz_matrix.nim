@@ -44,12 +44,15 @@ proc eye*(N: static[int], A: typedesc[float32], order: OrderType = colMajor): Ma
   for i in 0 ..< N:
     result.data[i + N * i] = 1'f32
 
-import drchaos
+when isMainModule:
+  import drchaos
 
-proc default[M, N: static[int]](_: typedesc[Matrix32[M, N]]): Matrix32[M, N] =
-  zeros(M, N, float32)
+  {.experimental: "strictFuncs".}
 
-func fuzzTarget(x: Matrix32[2, 2]) =
-  doAssert x != eye(2, float32)
+  proc default[M, N: static[int]](_: typedesc[Matrix32[M, N]]): Matrix32[M, N] =
+    zeros(M, N, float32)
 
-defaultMutator(fuzzTarget)
+  func fuzzTarget(x: Matrix32[2, 2]) =
+    doAssert x != eye(2, float32)
+
+  defaultMutator(fuzzTarget)

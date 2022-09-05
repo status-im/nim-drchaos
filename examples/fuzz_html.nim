@@ -35,26 +35,27 @@ proc `$`(n: HtmlNode): string =
   result = newStringOfCap(1000)
   toString n, result
 
-import drchaos
+when isMainModule:
+  import drchaos
 
-proc default(_: typedesc[HtmlNode]): HtmlNode =
-  HtmlNode(tag: text, s: "")
+  proc default(_: typedesc[HtmlNode]): HtmlNode =
+    HtmlNode(tag: text, s: "")
 
-func `==`(a, b: HtmlNode): bool =
-  if a.isNil:
-    if b.isNil: return true
-    return false
-  elif b.isNil or a.tag != b.tag:
-    return false
-  else:
-    case a.tag
-    of text: return a.s == b.s
-    else: return a.kids == b.kids
+  func `==`(a, b: HtmlNode): bool =
+    if a.isNil:
+      if b.isNil: return true
+      return false
+    elif b.isNil or a.tag != b.tag:
+      return false
+    else:
+      case a.tag
+      of text: return a.s == b.s
+      else: return a.kids == b.kids
 
-func fuzzTarget(x: HtmlNode) =
-  let data = HtmlNode(tag: head, kids: @[
-    HtmlNode(tag: text, s: "Hello World!"),
-  ])
-  doAssert $x != $data
+  func fuzzTarget(x: HtmlNode) =
+    let data = HtmlNode(tag: head, kids: @[
+      HtmlNode(tag: text, s: "Hello World!"),
+    ])
+    doAssert $x != $data
 
-defaultMutator(fuzzTarget)
+  defaultMutator(fuzzTarget)
