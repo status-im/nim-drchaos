@@ -585,7 +585,10 @@ template mutatorImpl*(target, mutator, typ: untyped) =
 
   proc mgetInput(x: var typ; data: openArray[byte]) =
     if equals(data, buffer):
-      x = move cached
+      when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
+        x = move cached
+      else:
+        x = cached
     else:
       var pos = 1
       fromData(data, pos, x)
@@ -610,10 +613,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     var r = initRand(seed)
     var x: typ
     if data.len > 1:
-      when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
-        mgetInput(x, data)
-      else:
-        x = getInput(x, data)
+      mgetInput(x, data)
     else:
       x = default(typeof(x))
     FuzzMutator(mutator)(x, maxLen-x.byteSize, r)
