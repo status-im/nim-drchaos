@@ -506,7 +506,7 @@ proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand) =
 
 proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand) =
   if depth < 0:
-    reset(x)
+    reset(x) # should be `=destroy`
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)

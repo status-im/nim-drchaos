@@ -66,7 +66,8 @@ defaultMutator(fuzzTarget)
 Dr. Chaos will generate millions of inputs and run `fuzzTarget` under a few seconds.
 More articulate examples, such as fuzzing a graph library are in the `examples/` directory.
 
-Defining a `==` proc for the input type is necessary.
+Defining a `==` proc for the input type is necessary. `proc default(_: typedesc[T]): T` can also
+be overloaded.
 
 ### Post-processors
 

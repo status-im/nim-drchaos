@@ -38,7 +38,7 @@ proc `$`(n: HtmlNode): string =
 import drchaos
 
 proc default(_: typedesc[HtmlNode]): HtmlNode =
-  HtmlNode(tag: th)
+  HtmlNode(tag: text, s: "")
 
 func `==`(a, b: HtmlNode): bool =
   if a.isNil:
@@ -53,8 +53,7 @@ func `==`(a, b: HtmlNode): bool =
 
 func fuzzTarget(x: HtmlNode) =
   let data = HtmlNode(tag: head, kids: @[
-    HtmlNode(tag: text, s: "mychild"),
-    HtmlNode(tag: body)
+    HtmlNode(tag: text, s: "Hello World!"),
   ])
   doAssert $x != $data
 
