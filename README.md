@@ -146,6 +146,12 @@ proc byteSize(x: T): int {.inline.} ## The size that will be consumed by the ser
 This is only necessary for destructor-based types. `mutate`, `default` and `==` must also be defined.
 `drchaos/common` exports read/write procs that assist with this task.
 
+### Dos and don'ts
+
+- Don't `echo`  in a fuzz target as it slows down execution speed.
+- Prefer `-d:danger` for maximum performance, once you have a crash you can always recompile with `-d:debug`.
+- You could compile without sanitizers, AddressSanitizer slows down by 2x, but it's not recommended.
+
 ### What's not supported
 
 - Polymorphic types, missing serialization support.
