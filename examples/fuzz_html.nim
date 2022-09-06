@@ -14,6 +14,17 @@ proc newTextNode(s: sink string): HtmlNode =
 proc newTree(tag: TagWithKids; kids: varargs[HtmlNode]): HtmlNode =
   HtmlNode(tag: tag, kids: @kids)
 
+func `==`(a, b: HtmlNode): bool =
+  if a.isNil:
+    if b.isNil: return true
+    return false
+  elif b.isNil or a.tag != b.tag:
+    return false
+  else:
+    case a.tag
+    of text: return a.s == b.s
+    else: return a.kids == b.kids
+
 proc add(parent: HtmlNode; kid: sink HtmlNode) = parent.kids.add kid
 
 from std/xmltree import addEscaped
@@ -41,26 +52,12 @@ when isMainModule:
   proc default(_: typedesc[HtmlNode]): HtmlNode =
     HtmlNode(tag: text, s: "")
 
-  func `==`(a, b: HtmlNode): bool =
-    if a.isNil:
-      if b.isNil: return true
-      return false
-    elif b.isNil or a.tag != b.tag:
-      return false
-    else:
-      case a.tag
-      of text: return a.s == b.s
-      else: return a.kids == b.kids
-
   func fuzzTarget(x: HtmlNode) =
     when defined(dumpFuzzInput): debugEcho(x)
-    let data = HtmlNode(tag: head, kids: @[
-      HtmlNode(tag: text, s: "Hello World!"),
-    ])
     # Here you could feed `$x` to htmlparser.parseHtml and make sure it doesn't crash.
     #var errors: seq[string] = @[]
-    #let tree = parseHtml($x, "unknown_html_doc", errors)
+    #let tree = parseHtml(newStringStream($x), "unknown_html_doc", errors)
     #doAssert errors.len == 0
-    doAssert $x != $data
+    doAssert $x != "<head>\n\n</head>"
 
   defaultMutator(fuzzTarget)

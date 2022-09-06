@@ -35,6 +35,9 @@ func fuzzTarget(data: (string, int32, int32, int32)) =
 defaultMutator(fuzzTarget)
 ```
 
+> **WARNING**: Fuzz targets must not modify the input variable. This can be ensured by using `.noSideEffect`
+> and {.experimental: "strictFuncs".}
+
 Or complex as shown bellow:
 
 ```nim
@@ -67,7 +70,7 @@ Dr. Chaos will generate millions of inputs and run `fuzzTarget` under a few seco
 More articulate examples, such as fuzzing a graph library are in the `examples/` directory.
 
 Defining a `==` proc for the input type is necessary. `proc default(_: typedesc[T]): T` can also
-be overloaded.
+be overloaded. Which is especially useful when `nil` for `ref` is not an acceptable value.
 
 ### Post-processors
 
@@ -149,7 +152,7 @@ This is only necessary for destructor-based types. `mutate`, `default` and `==` 
 ### Dos and don'ts
 
 - Don't `echo`  in a fuzz target as it slows down execution speed.
-- Prefer `-d:danger` for maximum performance.
+- Prefer `-d:danger|release` for maximum performance.
 - Once you have a crash you can recompile with `-d:debug` and pass the crashing test case as parameter.
 - With this line `when defined(dumpFuzzInput): debugEcho(x)` in a target and `-d:dumpFuzzInput`, observe the crashing input.
 - You could compile without sanitizers, AddressSanitizer slows down by 2x, but it's not recommended.

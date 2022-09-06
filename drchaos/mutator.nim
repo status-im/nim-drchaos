@@ -570,7 +570,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
   {.pragma: nosan, codegenDecl: "__attribute__((disable_sanitizer_instrumentation)) $# $#$#".}
 
   type
-    FuzzTarget = proc (x: typ) {.nimcall, noSideEffect.}
+    FuzzTarget = proc (x: typ) {.nimcall.}
     FuzzMutator = proc (x: var typ; sizeIncreaseHint: Natural, r: var Rand) {.nimcall.}
 
   var
