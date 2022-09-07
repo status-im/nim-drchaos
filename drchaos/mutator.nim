@@ -11,16 +11,16 @@ when (NimMajor, NimMinor, NimPatch) < (1, 7, 1):
       result = cast[T](r.next shr (sizeof(uint64) - sizeof(T))*8)
 
 when not defined(fuzzerStandalone):
-  proc mutate*(data: ptr UncheckedArray[byte], len, maxLen: int): int {.
+  proc mutate*(data: ptr UncheckedArray[byte]; len, maxLen: int): int {.
       importc: "LLVMFuzzerMutate".}
 
-template `+!`(p: pointer, s: int): untyped =
+template `+!`(p: pointer; s: int): untyped =
   cast[pointer](cast[ByteAddress](p) +% s)
 
 const
-  RandomToDefaultRatio = 100 # The chance of returning an uninitalized type.
+  RandomToDefaultRatio = 100      # The chance of returning an uninitalized type.
   DefaultMutateWeight = 1_000_000 # The default weight of items sampled by the reservoir sampler.
-  MaxInitializeDepth = 200 # The post-processor prunes nested non-copyMem types.
+  MaxInitializeDepth = 200        # The post-processor prunes nested non-copyMem types.
 
 type
   ByteSized* = int8|uint8|byte|bool|char # Run LibFuzzer's mutate for sequences of these types.
@@ -66,7 +66,7 @@ proc newInput*[T](sizeIncreaseHint: Natural; r: var Rand): T =
   result = default(T)
   runMutator(result, sizeIncreaseHint, false, r)
 
-proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHint: int;
+proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax: Positive; sizeIncreaseHint: int;
     r: var Rand): bool =
   let previousSize = previous.byteSize
   while value.len > 0 and r.rand(bool):
@@ -88,12 +88,12 @@ proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHin
     result = value != previous # runMutator item may still fail to generate a new mutation.
 
 when defined(fuzzerStandalone):
-  proc delete(x: var string, i: Natural) {.noSideEffect.} =
+  proc delete(x: var string; i: Natural) {.noSideEffect.} =
     let xl = x.len
     for j in i.int..xl-2: x[j] = x[j+1]
     setLen(x, xl-1)
 
-  proc insert(x: var string, item: char, i = 0.Natural) {.noSideEffect.} =
+  proc insert(x: var string; item: char; i = 0.Natural) {.noSideEffect.} =
     let xl = x.len
     setLen(x, xl+1)
     var j = xl-1
@@ -102,7 +102,8 @@ when defined(fuzzerStandalone):
       dec(j)
     x[i] = item
 
-  proc mutateString(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string =
+  proc mutateString(value: sink string; userMax: Positive; sizeIncreaseHint: int;
+      r: var Rand): string =
     result = value
     while result.len != 0 and r.rand(bool):
       result.delete(rand(r, result.high))
@@ -117,8 +118,8 @@ when defined(fuzzerStandalone):
     else:
       flipBit(cast[ptr UncheckedArray[uint8]](addr result[0]), result.len, r)
 
-  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax, sizeIncreaseHint: int;
-      r: var Rand): seq[T] =
+  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax: Positive;
+      sizeIncreaseHint: int; r: var Rand): seq[T] =
     result = value
     while result.len != 0 and r.rand(bool):
       result.delete(rand(r, result.high))
@@ -138,8 +139,8 @@ when defined(fuzzerStandalone):
       elif T is range:
         for i in 0..<result.len: result[i] = clamp(result[i], low(T), high(T))
 else:
-  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax, sizeIncreaseHint: int;
-      r: var Rand): seq[T] =
+  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax: Positive;
+      sizeIncreaseHint: int; r: var Rand): seq[T] =
     if r.rand(0..20) == 0:
       result = @[]
     else:
@@ -153,7 +154,8 @@ else:
       elif T is range:
         for i in 0..<result.len: result[i] = clamp(result[i], low(T), high(T))
 
-  proc mutateString*(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string =
+  proc mutateString*(value: sink string; userMax: Positive; sizeIncreaseHint: int;
+      r: var Rand): string =
     if r.rand(0..20) == 0:
       result = ""
     else:
@@ -162,7 +164,8 @@ else:
       result.setLen(clamp(oldSize + r.rand(sizeIncreaseHint), 1, userMax))
       result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
 
-proc mutateUtf8String*(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string {.inline.} =
+proc mutateUtf8String*(value: sink string; userMax: Positive; sizeIncreaseHint: int;
+    r: var Rand): string {.inline.} =
   result = mutateString(value, userMax, sizeIncreaseHint, r)
   fixUtf8(result, r)
 
@@ -455,15 +458,15 @@ proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges
       res = s.selected
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
-proc runPostProcessor*(x: var string, depth: int; r: var Rand)
-proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand)
-proc runPostProcessor*[T](x: var set[T], depth: int; r: var Rand)
-proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand)
-proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand)
-proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand)
-proc runPostProcessor*[S, T](x: var array[S, T], depth: int; r: var Rand)
+proc runPostProcessor*(x: var string; depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var seq[T]; depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var set[T]; depth: int; r: var Rand)
+proc runPostProcessor*[T: tuple](x: var T; depth: int; r: var Rand)
+proc runPostProcessor*[T: object](x: var T; depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var ref T; depth: int; r: var Rand)
+proc runPostProcessor*[S, T](x: var array[S, T]; depth: int; r: var Rand)
 
-proc runPostProcessor*[T: distinct](x: var T, depth: int; r: var Rand) =
+proc runPostProcessor*[T: distinct](x: var T; depth: int; r: var Rand) =
   # Allow post-processor functions for all distinct types.
   when compiles(postProcess(x, r)):
     if depth < 0:
@@ -474,14 +477,14 @@ proc runPostProcessor*[T: distinct](x: var T, depth: int; r: var Rand) =
     when x.distinctBase is PostProcessTypes:
       runPostProcessor(x.distinctBase, depth-1, r)
 
-proc runPostProcessor*(x: var string, depth: int; r: var Rand) =
+proc runPostProcessor*(x: var string; depth: int; r: var Rand) =
   if depth < 0:
     `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
 
-proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand) =
+proc runPostProcessor*[T](x: var seq[T]; depth: int; r: var Rand) =
   if depth < 0:
     `=destroy`(x)
   else:
@@ -492,12 +495,12 @@ proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand) =
         for i in 0..<x.len:
           runPostProcessor(x[i], depth-1, r)
 
-proc runPostProcessor*[T](x: var set[T], depth: int; r: var Rand) =
+proc runPostProcessor*[T](x: var set[T]; depth: int; r: var Rand) =
   when compiles(postProcess(x, r)):
     if depth >= 0:
       postProcess(x, r)
 
-proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand) =
+proc runPostProcessor*[T: tuple](x: var T; depth: int; r: var Rand) =
   if depth < 0:
     when not supportsCopyMem(T): `=destroy`(x)
   else:
@@ -508,7 +511,7 @@ proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand) =
         when typeof(v) is PostProcessTypes:
           runPostProcessor(v, depth-1, r)
 
-proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand) =
+proc runPostProcessor*[T: object](x: var T; depth: int; r: var Rand) =
   if depth < 0:
     when not supportsCopyMem(T): `=destroy`(x)
   else:
@@ -532,7 +535,7 @@ proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand) =
           runPostProcessor(x, depth-1, r)
       assignObjectImpl(x, runPostProcessorImpl)
 
-proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand) =
+proc runPostProcessor*[T](x: var ref T; depth: int; r: var Rand) =
   if depth < 0:
     `=destroy`(x)
   else:
@@ -542,7 +545,7 @@ proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand) =
       when T is PostProcessTypes:
         if x != nil: runPostProcessor(x[], depth-1, r)
 
-proc runPostProcessor*[S, T](x: var array[S, T], depth: int; r: var Rand) =
+proc runPostProcessor*[S, T](x: var array[S, T]; depth: int; r: var Rand) =
   if depth < 0:
     when not supportsCopyMem(T): `=destroy`(x)
   else:
@@ -571,7 +574,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
 
   type
     FuzzTarget = proc (x: typ) {.nimcall.}
-    FuzzMutator = proc (x: var typ; sizeIncreaseHint: Natural, r: var Rand) {.nimcall.}
+    FuzzMutator = proc (x: var typ; sizeIncreaseHint: Natural; r: var Rand) {.nimcall.}
 
   var
     buffer: seq[byte] = @[0xf1'u8]
@@ -611,7 +614,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     if data.len > 1: # Ignore '\n' passed by LibFuzzer.
       FuzzTarget(target)(getInput(x, data))
 
-  proc customMutatorImpl(data: openArray[byte]; maxLen: int, seed: int64): int {.nosan.} =
+  proc customMutatorImpl(data: openArray[byte]; maxLen: int; seed: int64): int {.nosan.} =
     var r = initRand(seed)
     var x: typ
     if data.len > 1:
@@ -626,7 +629,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
       clearBuffer()
       result = data.len
 
-  proc LLVMFuzzerTestOneInput(data: ptr UncheckedArray[byte], len: int): cint {.exportc.} =
+  proc LLVMFuzzerTestOneInput(data: ptr UncheckedArray[byte]; len: int): cint {.exportc.} =
     result = 0
     try:
       testOneInputImpl(toOpenArray(data, 0, len-1))
@@ -635,7 +638,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
       when compileOption("exceptions", "goto"):
         {.emit: "nimTestErrorFlag();".}
 
-  proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte], len, maxLen: int,
+  proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte]; len, maxLen: int;
       seed: int64): int {.exportc.} =
     try:
       result = customMutatorImpl(toOpenArray(data, 0, len-1), maxLen, seed)
