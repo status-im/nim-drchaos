@@ -154,8 +154,8 @@ This is only necessary for destructor-based types. `mutate`, `default` and `==` 
 - Don't `echo`  in a fuzz target as it slows down execution speed.
 - Prefer `-d:danger|release` for maximum performance.
 - Once you have a crash you can recompile with `-d:debug` and pass the crashing test case as parameter.
-- With this line `when defined(dumpFuzzInput): debugEcho(x)` in a target and `-d:dumpFuzzInput`, observe the crashing input.
-- You could compile without sanitizers, AddressSanitizer slows down by 2x, but it's not recommended.
+- Use `debugEcho(x)` in a target to print the crashing input.
+- You could compile without sanitizers, AddressSanitizer slows down programs by ~2x, but it's not recommended.
 
 ### What's not supported
 

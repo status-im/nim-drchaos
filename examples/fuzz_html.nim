@@ -52,7 +52,7 @@ when isMainModule:
   proc default(_: typedesc[HtmlNode]): HtmlNode =
     HtmlNode(tag: text, s: "")
 
-  func fuzzTarget(x: HtmlNode) =
+  proc fuzzTarget(x: HtmlNode) =
     when defined(dumpFuzzInput): debugEcho(x)
     # Here you could feed `$x` to htmlparser.parseHtml and make sure it doesn't crash.
     #var errors: seq[string] = @[]
