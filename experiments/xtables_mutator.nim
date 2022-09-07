@@ -1,6 +1,7 @@
 # WARNING: This mutator crashes for OrderedTable and it's too slow with Table.
 # TODO: split into files and make it compile again.
 # Use https://nim-lang.org/docs/importutils.html
+# Could try to mutate KeyValuePairSeq directly and then use enlarge.
 import random
 include std/tables
 
