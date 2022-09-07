@@ -106,7 +106,7 @@ when defined(fuzzerStandalone):
     result = value
     while result.len != 0 and r.rand(bool):
       result.delete(rand(r, result.high))
-    while sizeIncreaseHint > 0 and result.len < sizeIncreaseHint and r.rand(bool):
+    while sizeIncreaseHint > 0 and result.len < min(userMax, sizeIncreaseHint) and r.rand(bool):
       let index = rand(r, result.len)
       result.insert(r.rand(char), index)
     if result != value:
@@ -122,7 +122,7 @@ when defined(fuzzerStandalone):
     result = value
     while result.len != 0 and r.rand(bool):
       result.delete(rand(r, result.high))
-    while sizeIncreaseHint > 0 and result.len < sizeIncreaseHint and r.rand(bool):
+    while sizeIncreaseHint > 0 and result.len < min(userMax, sizeIncreaseHint) and r.rand(bool):
       let index = rand(r, result.len)
       result.insert(r.rand(T), index)
     if result != value:
@@ -145,7 +145,7 @@ else:
     else:
       let oldSize = value.len
       result = value
-      result.setLen(max(1, oldSize + r.rand(sizeIncreaseHint)))
+      result.setLen(clamp(oldSize + r.rand(sizeIncreaseHint), 1, userMax))
       result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
       when T is bool:
         # Fix bool values so UBSan stops complaining.
@@ -159,7 +159,7 @@ else:
     else:
       let oldSize = value.len
       result = value
-      result.setLen(max(1, oldSize + r.rand(sizeIncreaseHint)))
+      result.setLen(clamp(oldSize + r.rand(sizeIncreaseHint), 1, userMax))
       result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
 
 proc mutateUtf8String*(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string {.inline.} =
