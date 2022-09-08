@@ -585,6 +585,8 @@ template mutatorImpl*(target, mutator, typ: untyped) =
       result = cached
     else:
       var pos = 1
+      #when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
+        #x = move cached
       fromData(data, pos, x)
       result = x
 
@@ -596,6 +598,8 @@ template mutatorImpl*(target, mutator, typ: untyped) =
         x = cached
     else:
       var pos = 1
+      #when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
+        #x = move cached
       fromData(data, pos, x)
 
   proc setInput(x: var typ; data: openArray[byte]; len: int) {.inline.} =
