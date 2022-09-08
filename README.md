@@ -1,10 +1,10 @@
-# Dr. Chaos
+# drchaos
 
 Fuzzing is an automated bug finding technique, where randomized inputs are fed to a target
 program in order to get it to crash. With fuzzing, you can increase your test coverage to
 find edge cases and trigger bugs more effectively.
 
-Dr. Chaos extends the Nim interface to LLVM/Clang libFuzzer, an in-process,
+drchaos extends the Nim interface to LLVM/Clang libFuzzer, an in-process,
 coverage-guided, evolutionary fuzzing engine. And adds support for
 [structured fuzzing](https://github.com/google/fuzzing/blob/master/docs/structure-aware-fuzzing.md).
 The user should define the input type, as a parameter to the target function and the
@@ -66,7 +66,7 @@ func fuzzTarget(x: ContentNode) =
 defaultMutator(fuzzTarget)
 ```
 
-Dr. Chaos will generate millions of inputs and run `fuzzTarget` under a few seconds.
+drchaos will generate millions of inputs and run `fuzzTarget` under a few seconds.
 More articulate examples, such as fuzzing a graph library are in the `examples/` directory.
 
 Defining a `==` proc for the input type is necessary. `proc default(_: typedesc[T]): T` can also
@@ -163,15 +163,15 @@ must also be defined. `drchaos/common` exports read/write procs that assist with
 - References with cycles. A `.noFuzz` custom pragma will be added soon for cursors.
 - Object variants work only with the lastest memory management model `--mm:arc/orc`.
 
-## Why choose Dr. Chaos
+## Why choose drchaos
 
-Dr. Chaos has several advantages over frameworks derived from
+drchaos has several advantages over frameworks derived from
 [FuzzDataProvider](https://github.com/google/fuzzing/blob/master/docs/split-inputs.md)
 which struggle with dynamic types that in particular are nested. For a better explanation
 read an article written by the author of
 [Fuzzcheck](https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md).
 
-## Bugs found with help of the library
+## Bugs found with the help of drchaos
 
 ### Nim reference implementation
 
