@@ -48,7 +48,8 @@ proc byteSize[M, N: static[int]](x: Matrix32[M, N]): int {.inline.} =
   result = M * N * sizeof(float32)
 
 proc fromData[M, N: static[int]](data: openArray[byte]; pos: var int; output: var Matrix32[M, N]) =
-  output.data = createData(M * N)
+  if output.data == nil:
+    output.data = createData(M * N)
   let bLen = output.byteSize
   if readData(data, pos, output.data, bLen) != bLen:
     raiseDecoding()

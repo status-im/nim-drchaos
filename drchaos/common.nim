@@ -221,7 +221,7 @@ proc fromData*[K, V](data: openArray[byte]; pos: var int; output: var (Table[K, 
 proc fromData*[T](data: openArray[byte]; pos: var int; output: var ref T)
 proc fromData*[T](data: openArray[byte]; pos: var int; output: var Option[T])
 proc fromData*[T: tuple](data: openArray[byte]; pos: var int; output: var T)
-proc fromData*[T: object](data: openArray[byte]; pos: var int; output: var T) {.nodestroy.}
+proc fromData*[T: object](data: openArray[byte]; pos: var int; output: var T)
 proc fromData*[T: distinct](data: openArray[byte]; pos: var int; output: var T) {.inline.}
 
 proc toData*(data: var openArray[byte]; pos: var int; input: string)

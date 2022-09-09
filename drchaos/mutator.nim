@@ -585,7 +585,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
       discard
     else:
       var pos = 1
-      reset(cached)
+      #reset(cached)
       fromData(data, pos, cached)
 
   proc setInput(data: openArray[byte]; len: int) {.inline.} =
@@ -596,6 +596,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     copyMem(unsafeAddr data, addr buffer[0], len)
 
   proc clearBuffer() {.inline.} =
+    reset(cached)
     setLen(buffer, 1)
 
   proc testOneInputImpl(data: openArray[byte]) =
