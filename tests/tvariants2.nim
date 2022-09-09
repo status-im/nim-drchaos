@@ -21,6 +21,6 @@ func fuzzTarget(x: ContentNode) =
     ContentNode(kind: Text, textStr: "mychild"),
     ContentNode(kind: Br)
   ])
-  doAssert x != x
+  doAssert x != data
 
 defaultMutator(fuzzTarget)
