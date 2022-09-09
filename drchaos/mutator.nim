@@ -470,7 +470,7 @@ proc runPostProcessor*[T: distinct](x: var T; depth: int; r: var Rand) =
   # Allow post-processor functions for all distinct types.
   when compiles(postProcess(x, r)):
     if depth < 0:
-      when not supportsCopyMem(T): `=destroy`(x)
+      when not supportsCopyMem(T): reset(x)
     else:
       postProcess(x, r)
   else:
@@ -479,14 +479,14 @@ proc runPostProcessor*[T: distinct](x: var T; depth: int; r: var Rand) =
 
 proc runPostProcessor*(x: var string; depth: int; r: var Rand) =
   if depth < 0:
-    `=destroy`(x)
+    reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
 
 proc runPostProcessor*[T](x: var seq[T]; depth: int; r: var Rand) =
   if depth < 0:
-    `=destroy`(x)
+    reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -502,7 +502,7 @@ proc runPostProcessor*[T](x: var set[T]; depth: int; r: var Rand) =
 
 proc runPostProcessor*[T: tuple](x: var T; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): `=destroy`(x)
+    when not supportsCopyMem(T): reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -513,7 +513,7 @@ proc runPostProcessor*[T: tuple](x: var T; depth: int; r: var Rand) =
 
 proc runPostProcessor*[T: object](x: var T; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): `=destroy`(x)
+    when not supportsCopyMem(T): reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -537,7 +537,7 @@ proc runPostProcessor*[T: object](x: var T; depth: int; r: var Rand) =
 
 proc runPostProcessor*[T](x: var ref T; depth: int; r: var Rand) =
   if depth < 0:
-    `=destroy`(x)
+    reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -547,7 +547,7 @@ proc runPostProcessor*[T](x: var ref T; depth: int; r: var Rand) =
 
 proc runPostProcessor*[S, T](x: var array[S, T]; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): `=destroy`(x)
+    when not supportsCopyMem(T): reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
