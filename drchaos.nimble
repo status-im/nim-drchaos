@@ -1,6 +1,6 @@
 mode = ScriptMode.Verbose
 
-version = "0.1.6"
+version = "0.1.7"
 author = "Dr. Chaos Team"
 description = "A powerful and easy-to-use fuzzing framework in Nim for C/C++/Obj-C targets"
 license = "Apache License 2.0"
