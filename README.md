@@ -1,10 +1,10 @@
-# Dr. Chaos
+# drchaos
 
 Fuzzing is an automated bug finding technique, where randomized inputs are fed to a target
 program in order to get it to crash. With fuzzing, you can increase your test coverage to
 find edge cases and trigger bugs more effectively.
 
-Dr. Chaos extends the Nim interface to LLVM/Clang libFuzzer, an in-process,
+drchaos extends the Nim interface to LLVM/Clang libFuzzer, an in-process,
 coverage-guided, evolutionary fuzzing engine. And adds support for
 [structured fuzzing](https://github.com/google/fuzzing/blob/master/docs/structure-aware-fuzzing.md).
 The user should define the input type, as a parameter to the target function and the
@@ -35,6 +35,9 @@ func fuzzTarget(data: (string, int32, int32, int32)) =
 defaultMutator(fuzzTarget)
 ```
 
+> **WARNING**: Fuzz targets must not modify the input variable. This can be ensured by using `.noSideEffect`
+> and {.experimental: "strictFuncs".}
+
 Or complex as shown bellow:
 
 ```nim
@@ -63,10 +66,11 @@ func fuzzTarget(x: ContentNode) =
 defaultMutator(fuzzTarget)
 ```
 
-Dr. Chaos will generate millions of inputs and run `fuzzTarget` under a few seconds.
+drchaos will generate millions of inputs and run `fuzzTarget` under a few seconds.
 More articulate examples, such as fuzzing a graph library are in the `examples/` directory.
 
-Defining a `==` proc for the input type is necessary.
+Defining a `==` proc for the input type is necessary. `proc default(_: typedesc[T]): T` can also
+be overloaded. Which is especially useful when `nil` for `ref` is not an acceptable value.
 
 ### Post-processors
 
@@ -132,19 +136,47 @@ proc mutate(value: var ClientId; sizeIncreaseHint: int; enforceChanges: bool; r:
 For aiding the creation of mutate functions, mutators for every supported type are
 exported by `drchaos/mutator`.
 
-## What's not supported
+### User-defined serializers
+
+User overloads must use the following proc signatures:
+
+```nim
+proc fromData(data: openArray[byte]; pos: var int; output: var T)
+proc toData(data: var openArray[byte]; pos: var int; input: T)
+proc byteSize(x: T): int {.inline.} ## The size that will be consumed by the serialized type in bytes.
+```
+
+This is only necessary for objects that contain raw pointers. `mutate`, `default` and `==`
+must also be defined. `drchaos/common` exports read/write procs that assist with this task.
+
+### Dos and don'ts
+
+- Don't `echo`  in a fuzz target as it slows down execution speed.
+- Prefer `-d:danger` for maximum performance.
+- Once you have a crash you can recompile with `-d:debug` and pass the crashing test case as parameter.
+- Use `debugEcho(x)` in a target to print the crashing input.
+- You could compile without sanitizers, AddressSanitizer slows down programs by ~2x, but it's not recommended.
+
+### What's not supported
 
 - Polymorphic types, missing serialization support.
 - References with cycles. A `.noFuzz` custom pragma will be added soon for cursors.
 - Object variants work only with the lastest memory management model `--mm:arc/orc`.
 
-## Why choose Dr. Chaos
+## Why choose drchaos
 
-Dr. Chaos has several advantages over frameworks derived from
+drchaos has several advantages over frameworks derived from
 [FuzzDataProvider](https://github.com/google/fuzzing/blob/master/docs/split-inputs.md)
 which struggle with dynamic types that in particular are nested. For a better explanation
 read an article written by the author of
 [Fuzzcheck](https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md).
+
+## Bugs found with the help of drchaos
+
+### Nim reference implementation
+
+* [use-after-free bugs in object variants](https://github.com/nim-lang/Nim/issues/20305)
+* [openArray on empty seq triggers UB](https://github.com/nim-lang/Nim/issues/20294)
 
 ## License
 

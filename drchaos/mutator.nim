@@ -14,16 +14,16 @@ when (NimMajor, NimMinor, NimPatch) < (1, 7, 1):
       result = cast[T](r.next shr (sizeof(uint64) - sizeof(T))*8)
 
 when not defined(fuzzerStandalone):
-  proc mutate(data: ptr UncheckedArray[byte], len, maxLen: int): int {.
+  proc mutate*(data: ptr UncheckedArray[byte]; len, maxLen: int): int {.
       importc: "LLVMFuzzerMutate".}
 
-template `+!`(p: pointer, s: int): untyped =
+template `+!`(p: pointer; s: int): untyped =
   cast[pointer](cast[ByteAddress](p) +% s)
 
 const
-  RandomToDefaultRatio = 100 # The chance of returning an uninitalized type.
+  RandomToDefaultRatio = 100      # The chance of returning an uninitalized type.
   DefaultMutateWeight = 1_000_000 # The default weight of items sampled by the reservoir sampler.
-  MaxInitializeDepth = 200 # The post-processor prunes nested non-copyMem types.
+  MaxInitializeDepth = 200        # The post-processor prunes nested non-copyMem types.
 
 type
   ByteSized* = int8|uint8|byte|bool|char # Run LibFuzzer's mutate for sequences of these types.
@@ -65,10 +65,15 @@ proc mutateEnum*(index, itemCount: int; r: var Rand): int =
 
 proc newInput*[T](sizeIncreaseHint: Natural; r: var Rand): T =
   ## Creates new input with a chance of returning default(T).
+<<<<<<< HEAD
   echo "new input!"
+=======
+  mixin default
+  result = default(T)
+>>>>>>> master
   runMutator(result, sizeIncreaseHint, false, r)
 
-proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHint: int;
+proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax: Positive; sizeIncreaseHint: int;
     r: var Rand): bool =
   let previousSize = previous.byteSize
   while value.len > 0 and r.rand(bool):
@@ -95,12 +100,12 @@ proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax, sizeIncreaseHin
     result = value != previous # runMutator item may still fail to generate a new mutation.
 
 when defined(fuzzerStandalone):
-  proc delete(x: var string, i: Natural) {.noSideEffect.} =
+  proc delete(x: var string; i: Natural) {.noSideEffect.} =
     let xl = x.len
     for j in i.int..xl-2: x[j] = x[j+1]
     setLen(x, xl-1)
 
-  proc insert(x: var string, item: char, i = 0.Natural) {.noSideEffect.} =
+  proc insert(x: var string; item: char; i = 0.Natural) {.noSideEffect.} =
     let xl = x.len
     setLen(x, xl+1)
     var j = xl-1
@@ -109,11 +114,12 @@ when defined(fuzzerStandalone):
       dec(j)
     x[i] = item
 
-  proc mutateString(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string =
+  proc mutateString(value: sink string; userMax: Positive; sizeIncreaseHint: int;
+      r: var Rand): string =
     result = value
     while result.len != 0 and r.rand(bool):
       result.delete(rand(r, result.high))
-    while sizeIncreaseHint > 0 and result.len < sizeIncreaseHint and r.rand(bool):
+    while sizeIncreaseHint > 0 and result.len < min(userMax, sizeIncreaseHint) and r.rand(bool):
       let index = rand(r, result.len)
       result.insert(r.rand(char), index)
     if result != value:
@@ -124,12 +130,12 @@ when defined(fuzzerStandalone):
     else:
       flipBit(cast[ptr UncheckedArray[uint8]](addr result[0]), result.len, r)
 
-  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax, sizeIncreaseHint: int;
-      r: var Rand): seq[T] =
+  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax: Positive;
+      sizeIncreaseHint: int; r: var Rand): seq[T] =
     result = value
     while result.len != 0 and r.rand(bool):
       result.delete(rand(r, result.high))
-    while sizeIncreaseHint > 0 and result.len < sizeIncreaseHint and r.rand(bool):
+    while sizeIncreaseHint > 0 and result.len < min(userMax, sizeIncreaseHint) and r.rand(bool):
       let index = rand(r, result.len)
       result.insert(r.rand(T), index)
     if result != value:
@@ -145,14 +151,14 @@ when defined(fuzzerStandalone):
       elif T is range:
         for i in 0..<result.len: result[i] = clamp(result[i], low(T), high(T))
 else:
-  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax, sizeIncreaseHint: int;
-      r: var Rand): seq[T] =
+  proc mutateByteSizedSeq*[T: ByteSized](value: sink seq[T]; userMax: Positive;
+      sizeIncreaseHint: int; r: var Rand): seq[T] =
     if r.rand(0..20) == 0:
       result = @[]
     else:
       let oldSize = value.len
       result = value
-      result.setLen(max(1, oldSize + r.rand(sizeIncreaseHint)))
+      result.setLen(clamp(oldSize + r.rand(sizeIncreaseHint), 1, userMax))
       result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
       when T is bool:
         # Fix bool values so UBSan stops complaining.
@@ -160,16 +166,18 @@ else:
       elif T is range:
         for i in 0..<result.len: result[i] = clamp(result[i], low(T), high(T))
 
-  proc mutateString*(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string =
+  proc mutateString*(value: sink string; userMax: Positive; sizeIncreaseHint: int;
+      r: var Rand): string =
     if r.rand(0..20) == 0:
       result = ""
     else:
       let oldSize = value.len
       result = value
-      result.setLen(max(1, oldSize + r.rand(sizeIncreaseHint)))
+      result.setLen(clamp(oldSize + r.rand(sizeIncreaseHint), 1, userMax))
       result.setLen(mutate(cast[ptr UncheckedArray[byte]](addr result[0]), oldSize, result.len))
 
-proc mutateUtf8String*(value: sink string; userMax, sizeIncreaseHint: int; r: var Rand): string {.inline.} =
+proc mutateUtf8String*(value: sink string; userMax: Positive; sizeIncreaseHint: int;
+    r: var Rand): string {.inline.} =
   result = mutateString(value, userMax, sizeIncreaseHint, r)
   fixUtf8(result, r)
 
@@ -181,8 +189,9 @@ proc mutateArray*[S, T](value: array[S, T]; r: var Rand): array[S, T] {.inline.}
     for i in low(result)..high(result): result[i] = clamp(result[i], low(T), high(T))
 
 template repeatMutate*(call: untyped) =
+  mixin default
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-    discard
+    value = default(typeof(value))
   else:
     var tmp = value
     for i in 1..10:
@@ -191,8 +200,9 @@ template repeatMutate*(call: untyped) =
       echo "mutating again!"
 
 template repeatMutateInplace*(call: untyped) =
+  mixin default
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-    discard
+    value = default(typeof(value))
   else:
     var tmp {.inject.} = value
     for i in 1..10:
@@ -240,12 +250,24 @@ proc mutate*[S; T: SomeNumber|bool|char](value: var array[S, T]; sizeIncreaseHin
   repeatMutate(mutateArray(value, r))
 
 proc mutate*[T](value: var Option[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
+  mixin default
   if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-    discard
+    value = none(T)
   else:
     if not isSome(value):
       value = some(default(T))
     runMutator(value.get, sizeIncreaseHint, enforceChanges, r)
+
+proc sample(x: bool; s: var Sampler; r: var Rand; res: var int)
+proc sample(x: char; s: var Sampler; r: var Rand; res: var int)
+proc sample[T: enum](x: T; s: var Sampler; r: var Rand; res: var int)
+proc sample[T](x: set[T]; s: var Sampler; r: var Rand; res: var int)
+proc sample[T: SomeNumber](x: T; s: var Sampler; r: var Rand; res: var int)
+proc sample[T](x: seq[T]; s: var Sampler; r: var Rand; res: var int)
+proc sample(x: string; s: var Sampler; r: var Rand; res: var int)
+proc sample[T: tuple|object](x: T; s: var Sampler; r: var Rand; res: var int)
+proc sample[T](x: ref T; s: var Sampler; r: var Rand; res: var int)
+proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int)
 
 template sampleAttempt(call: untyped) =
   inc res
@@ -297,6 +319,18 @@ proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int) =
   else:
     for i in low(x)..high(x):
       sample(x[i], s, r, res)
+
+proc pick(x: var bool; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick(x: var char; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T: enum](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T](x: var set[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T: SomeNumber](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T](x: var seq[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick(x: var string; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T: tuple](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T: object](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[T](x: var ref T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
+proc pick[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand; res: var int)
 
 template pickMutate(call: untyped) =
   if res > 0:
@@ -400,11 +434,12 @@ proc runMutator*[T](x: var set[T]; sizeIncreaseHint: int; enforceChanges: bool; 
   mutate(x, sizeIncreaseHint, enforceChanges, r)
 
 proc runMutator*[T: tuple|object](x: var T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
+  mixin default
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     mutate(x, sizeIncreaseHint, enforceChanges, r)
   else:
     if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-      discard
+      x = default(T)
     else:
       var res = 0
       var s: Sampler[int]
@@ -415,21 +450,23 @@ proc runMutator*[T: tuple|object](x: var T; sizeIncreaseHint: int; enforceChange
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
 proc runMutator*[T](x: var ref T; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
+  mixin default
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     mutate(x, sizeIncreaseHint, enforceChanges, r)
   else:
     if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-      discard
+      x = default(typeof(x))
     else:
       if x == nil: new(x)
       runMutator(x[], sizeIncreaseHint, enforceChanges, r)
 
 proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
+  mixin default
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     mutate(x, sizeIncreaseHint, enforceChanges, r)
   else:
     if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-      discard
+      x = default(typeof(x))
     else:
       var res = 0
       var s: Sampler[int]
@@ -438,35 +475,35 @@ proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges
       echo "arr target: ", res
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
-proc runPostProcessor*(x: var string, depth: int; r: var Rand)
-proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand)
-proc runPostProcessor*[T](x: var set[T], depth: int; r: var Rand)
-proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand)
-proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand)
-proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand)
-proc runPostProcessor*[S, T](x: var array[S, T], depth: int; r: var Rand)
+proc runPostProcessor*(x: var string; depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var seq[T]; depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var set[T]; depth: int; r: var Rand)
+proc runPostProcessor*[T: tuple](x: var T; depth: int; r: var Rand)
+proc runPostProcessor*[T: object](x: var T; depth: int; r: var Rand)
+proc runPostProcessor*[T](x: var ref T; depth: int; r: var Rand)
+proc runPostProcessor*[S, T](x: var array[S, T]; depth: int; r: var Rand)
 
-proc runPostProcessor*[T: distinct](x: var T, depth: int; r: var Rand) =
+proc runPostProcessor*[T: distinct](x: var T; depth: int; r: var Rand) =
   # Allow post-processor functions for all distinct types.
   when compiles(postProcess(x, r)):
     if depth < 0:
-      when not supportsCopyMem(T): reset(x)
+      when not supportsCopyMem(T): `=destroy`(x)
     else:
       postProcess(x, r)
   else:
     when x.distinctBase is PostProcessTypes:
       runPostProcessor(x.distinctBase, depth-1, r)
 
-proc runPostProcessor*(x: var string, depth: int; r: var Rand) =
+proc runPostProcessor*(x: var string; depth: int; r: var Rand) =
   if depth < 0:
-    reset(x)
+    `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
 
-proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand) =
+proc runPostProcessor*[T](x: var seq[T]; depth: int; r: var Rand) =
   if depth < 0:
-    reset(x)
+    `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -475,14 +512,14 @@ proc runPostProcessor*[T](x: var seq[T], depth: int; r: var Rand) =
         for i in 0..<x.len:
           runPostProcessor(x[i], depth-1, r)
 
-proc runPostProcessor*[T](x: var set[T], depth: int; r: var Rand) =
+proc runPostProcessor*[T](x: var set[T]; depth: int; r: var Rand) =
   when compiles(postProcess(x, r)):
     if depth >= 0:
       postProcess(x, r)
 
-proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand) =
+proc runPostProcessor*[T: tuple](x: var T; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): reset(x)
+    when not supportsCopyMem(T): `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -491,9 +528,9 @@ proc runPostProcessor*[T: tuple](x: var T, depth: int; r: var Rand) =
         when typeof(v) is PostProcessTypes:
           runPostProcessor(v, depth-1, r)
 
-proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand) =
+proc runPostProcessor*[T: object](x: var T; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): reset(x)
+    when not supportsCopyMem(T): `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -515,9 +552,9 @@ proc runPostProcessor*[T: object](x: var T, depth: int; r: var Rand) =
           runPostProcessor(x, depth-1, r)
       assignObjectImpl(x, runPostProcessorImpl)
 
-proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand) =
+proc runPostProcessor*[T](x: var ref T; depth: int; r: var Rand) =
   if depth < 0:
-    reset(x)
+    `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -525,9 +562,9 @@ proc runPostProcessor*[T](x: var ref T, depth: int; r: var Rand) =
       when T is PostProcessTypes:
         if x != nil: runPostProcessor(x[], depth-1, r)
 
-proc runPostProcessor*[S, T](x: var array[S, T], depth: int; r: var Rand) =
+proc runPostProcessor*[S, T](x: var array[S, T]; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): reset(x)
+    when not supportsCopyMem(T): `=destroy`(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -548,85 +585,77 @@ template initializeImpl*() =
     NimMain()
 
 template mutatorImpl*(target, mutator, typ: untyped) =
+  mixin default
   {.pragma: nocov, codegenDecl: "__attribute__((no_sanitize(\"coverage\"))) $# $#$#".}
   {.pragma: nosan, codegenDecl: "__attribute__((disable_sanitizer_instrumentation)) $# $#$#".}
 
   type
-    FuzzTarget = proc (x: typ) {.nimcall, noSideEffect.}
-    FuzzMutator = proc (x: var typ; sizeIncreaseHint: Natural, r: var Rand) {.nimcall.}
+    FuzzTarget = proc (x: typ) {.nimcall.}
+    FuzzMutator = proc (x: var typ; sizeIncreaseHint: Natural; r: var Rand) {.nimcall.}
 
   var
     buffer: seq[byte] = @[0xf1'u8]
     cached: typ
 
-  proc getInput(x: var typ; data: openArray[byte]): lent typ {.nocov, nosan.} =
+  proc getInput(data: openArray[byte]) {.nocov, nosan.} =
     if equals(data, buffer):
-      result = cached
+      discard
     else:
       var pos = 1
-      fromData(data, pos, x)
-      result = x
+      #reset(cached)
+      fromData(data, pos, cached)
 
-  proc mgetInput(x: var typ; data: openArray[byte]): typ {.nocov, nosan.} =
-    if equals(data, buffer):
-      result = move cached
-    else:
-      var pos = 1
-      fromData(data, pos, x)
-      result = move x
-
-  proc setInput(x: var typ; data: openArray[byte]; len: int) {.inline.} =
+  proc setInput(data: openArray[byte]; len: int) {.inline.} =
     setLen(buffer, len)
     var pos = 1
-    toData(buffer, pos, x)
+    toData(buffer, pos, cached)
     assert pos == len
-    copyMem(addr data, addr buffer[0], len)
-    cached = move x
+    copyMem(unsafeAddr data, addr buffer[0], len)
 
   proc clearBuffer() {.inline.} =
+    reset(cached)
     setLen(buffer, 1)
 
-  proc testOneInputImpl[T](x: var T; data: openArray[byte]) =
+  proc testOneInputImpl(data: openArray[byte]) =
     if data.len > 1: # Ignore '\n' passed by LibFuzzer.
-      FuzzTarget(target)(getInput(x, data))
+      getInput(data)
+      FuzzTarget(target)(cached)
 
-  proc customMutatorImpl(x: var typ; data: openArray[byte]; maxLen: int;
-      r: var Rand): int {.nosan.} =
+  proc customMutatorImpl(data: openArray[byte]; maxLen: int; seed: int64): int {.nosan.} =
+    var r = initRand(seed)
     if data.len > 1:
-      x = mgetInput(x, data)
-    echo "step: ", step, " input: ", x
-    FuzzMutator(mutator)(x, maxLen-x.byteSize, r)
-    echo " new mutation: ", x
-    result = x.byteSize+1 # +1 for the skipped byte
+      getInput(data)
+    else:
+      cached = default(typeof(cached))
+    echo "step: ", step, " input: ", cached
+    FuzzMutator(mutator)(cached, maxLen-cached.byteSize, r)
+    echo " new mutation: ", cached
+    result = cached.byteSize+1 # +1 for the skipped byte
     if result <= maxLen:
-      setInput(x, data, result)
+      setInput(data, result)
     else:
       clearBuffer()
       result = data.len
 
-  proc LLVMFuzzerTestOneInput(data: ptr UncheckedArray[byte], len: int): cint {.exportc.} =
+  proc LLVMFuzzerTestOneInput(data: ptr UncheckedArray[byte]; len: int): cint {.exportc.} =
     result = 0
     try:
-      var x: typ
-      testOneInputImpl(x, toOpenArray(data, 0, len-1))
+      testOneInputImpl(toOpenArray(data, 0, len-1))
     finally:
       # Call Nim's compiler api to report unhandled exceptions. See: Nim#18215
       when compileOption("exceptions", "goto"):
         {.emit: "nimTestErrorFlag();".}
 
-  proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte], len, maxLen: int,
+  proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte]; len, maxLen: int;
       seed: int64): int {.exportc.} =
     try:
-      inc step
-      var r = initRand(seed)
-      var x: typ
-      result = customMutatorImpl(x, toOpenArray(data, 0, len-1), maxLen, r)
+      result = customMutatorImpl(toOpenArray(data, 0, len-1), maxLen, seed)
     finally:
       when compileOption("exceptions", "goto"):
         {.emit: "nimTestErrorFlag();".}
 
 proc commonImpl(target, mutator: NimNode): NimNode =
-  let typ = getTypeImpl(target).params[^1][1]
+  let typ = getImpl(target).params[^1][1]
   result = getAst(mutatorImpl(target, mutator, typ))
   result.add getAst(initializeImpl())
 

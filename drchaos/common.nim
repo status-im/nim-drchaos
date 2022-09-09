@@ -78,16 +78,16 @@ type
   EncodingDefect = object of Defect
   DecodingDefect = object of Defect
 
-proc raiseEncoding() {.noinline, noreturn.} =
+proc raiseEncoding*() {.noinline, noreturn.} =
   raise newException(EncodingDefect, "Can't write bytes to buffer.")
 
-proc raiseDecoding() {.noinline, noreturn.} =
+proc raiseDecoding*() {.noinline, noreturn.} =
   raise newException(DecodingDefect, "Can't read bytes from buffer.")
 
 proc equals*(a, b: openArray[byte]): bool =
   if a.len != b.len:
     result = false
-  else: result = equalMem(addr a, addr b, a.len)
+  else: result = equalMem(unsafeAddr a, unsafeAddr b, a.len)
 
 proc byteSize*(x: string): int {.inline.}
 proc byteSize*[S, T](x: array[S, T]): int {.inline.}
@@ -170,7 +170,7 @@ proc write*[T](data: var openArray[byte], pos: var int, input: T) =
 proc readData*(data: openArray[byte], pos: var int, buffer: pointer, bufLen: int): int =
   result = min(bufLen, data.len - pos)
   if result > 0:
-    copyMem(buffer, data[pos].addr, result)
+    copyMem(buffer, data[pos].unsafeAddr, result)
     inc(pos, result)
   else:
     result = 0
@@ -223,7 +223,7 @@ proc fromData*[K, V](data: openArray[byte]; pos: var int; output: var (Table[K, 
 proc fromData*[T](data: openArray[byte]; pos: var int; output: var ref T)
 proc fromData*[T](data: openArray[byte]; pos: var int; output: var Option[T])
 proc fromData*[T: tuple](data: openArray[byte]; pos: var int; output: var T)
-proc fromData*[T: object](data: openArray[byte]; pos: var int; output: var T) {.nodestroy.}
+proc fromData*[T: object](data: openArray[byte]; pos: var int; output: var T)
 proc fromData*[T: distinct](data: openArray[byte]; pos: var int; output: var T) {.inline.}
 
 proc toData*(data: var openArray[byte]; pos: var int; input: string)
@@ -333,7 +333,7 @@ proc toData*[K, V](data: var openArray[byte]; pos: var int; input: (Table[K, V]|
 
 proc fromData*[K, V](data: openArray[byte]; pos: var int; output: var (Table[K, V]|OrderedTable[K, V])) =
   let len = readInt32(data, pos).int
-  for i in 0 ..< len:
+  for i in 0..<len:
     var key: K
     fromData(data, pos, key)
     fromData(data, pos, mgetOrPut(output, key, default(V)))
