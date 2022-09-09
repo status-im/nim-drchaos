@@ -580,55 +580,39 @@ template mutatorImpl*(target, mutator, typ: untyped) =
     buffer: seq[byte] = @[0xf1'u8]
     cached: typ
 
-  proc getInput(x: var typ; data: openArray[byte]): lent typ {.nocov, nosan.} =
+  proc getInput(data: openArray[byte]) {.nocov, nosan.} =
     if equals(data, buffer):
-      result = cached
+      discard
     else:
       var pos = 1
-      #when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
-        #x = move cached
-      fromData(data, pos, x)
-      result = x
+      reset(cached)
+      fromData(data, pos, cached)
 
-  proc mgetInput(x: var typ; data: openArray[byte]) =
-    if equals(data, buffer):
-      when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
-        x = move cached
-      else:
-        x = cached
-    else:
-      var pos = 1
-      #when (NimMajor, NimMinor, NimPatch) >= (1, 7, 1):
-        #x = move cached
-      fromData(data, pos, x)
-
-  proc setInput(x: var typ; data: openArray[byte]; len: int) {.inline.} =
+  proc setInput(data: openArray[byte]; len: int) {.inline.} =
     setLen(buffer, len)
     var pos = 1
-    toData(buffer, pos, x)
+    toData(buffer, pos, cached)
     assert pos == len
     copyMem(unsafeAddr data, addr buffer[0], len)
-    cached = move x
 
   proc clearBuffer() {.inline.} =
     setLen(buffer, 1)
 
   proc testOneInputImpl(data: openArray[byte]) =
-    var x: typ
     if data.len > 1: # Ignore '\n' passed by LibFuzzer.
-      FuzzTarget(target)(getInput(x, data))
+      getInput(data)
+      FuzzTarget(target)(cached)
 
   proc customMutatorImpl(data: openArray[byte]; maxLen: int; seed: int64): int {.nosan.} =
     var r = initRand(seed)
-    var x: typ
     if data.len > 1:
-      mgetInput(x, data)
+      getInput(data)
     else:
-      x = default(typeof(x))
-    FuzzMutator(mutator)(x, maxLen-x.byteSize, r)
-    result = x.byteSize+1 # +1 for the skipped byte
+      cached = default(typeof(cached))
+    FuzzMutator(mutator)(cached, maxLen-cached.byteSize, r)
+    result = cached.byteSize+1 # +1 for the skipped byte
     if result <= maxLen:
-      setInput(x, data, result)
+      setInput(data, result)
     else:
       clearBuffer()
       result = data.len
