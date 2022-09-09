@@ -152,7 +152,7 @@ must also be defined. `drchaos/common` exports read/write procs that assist with
 ### Dos and don'ts
 
 - Don't `echo`  in a fuzz target as it slows down execution speed.
-- Prefer `-d:danger|release` for maximum performance.
+- Prefer `-d:danger` for maximum performance.
 - Once you have a crash you can recompile with `-d:debug` and pass the crashing test case as parameter.
 - Use `debugEcho(x)` in a target to print the crashing input.
 - You could compile without sanitizers, AddressSanitizer slows down programs by ~2x, but it's not recommended.
