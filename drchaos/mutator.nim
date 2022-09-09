@@ -282,10 +282,10 @@ proc sample[T: SomeNumber](x: T; s: var Sampler; r: var Rand; res: var int) =
   sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T](x: seq[T]; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(pointer), res))
 
 proc sample(x: string; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(pointer), res))
 
 proc sample[T: tuple|object](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
