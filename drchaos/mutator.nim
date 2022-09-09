@@ -21,9 +21,9 @@ template `+!`(p: pointer; s: int): untyped =
   cast[pointer](cast[ByteAddress](p) +% s)
 
 const
-  RandomToDefaultRatio = 100      # The chance of returning an uninitalized type.
-  DefaultMutateWeight = 1_000_000 # The default weight of items sampled by the reservoir sampler.
-  MaxInitializeDepth = 200        # The post-processor prunes nested non-copyMem types.
+  RandomToDefaultRatio = 100    # The chance of returning an uninitalized type.
+  DefaultMutateWeight = 125_000 # The default weight of items sampled by the reservoir sampler.
+  MaxInitializeDepth = 200      # The post-processor prunes nested non-copyMem types.
 
 type
   ByteSized* = int8|uint8|byte|bool|char # Run LibFuzzer's mutate for sequences of these types.
@@ -65,12 +65,9 @@ proc mutateEnum*(index, itemCount: int; r: var Rand): int =
 
 proc newInput*[T](sizeIncreaseHint: Natural; r: var Rand): T =
   ## Creates new input with a chance of returning default(T).
-<<<<<<< HEAD
-  echo "new input!"
-=======
   mixin default
   result = default(T)
->>>>>>> master
+  echo "new input!"
   runMutator(result, sizeIncreaseHint, false, r)
 
 proc mutateSeq*[T](value: var seq[T]; previous: seq[T]; userMax: Positive; sizeIncreaseHint: int;
@@ -275,7 +272,7 @@ template sampleAttempt(call: untyped) =
 
 proc sample[T: distinct](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res)) # distinct bool lol
   else:
     sample(x.distinctBase, s, r, res)
 
@@ -283,39 +280,39 @@ proc sample(x: bool; s: var Sampler; r: var Rand; res: var int) =
   sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
 
 proc sample(x: char; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T: enum](x: T; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T](x: set[T]; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T: SomeNumber](x: T; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T](x: seq[T]; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample(x: string; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T: tuple|object](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
   else:
     for v in fields(x):
       sample(v, s, r, res)
 
 proc sample[T](x: ref T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
   else:
     if x != nil: sample(x[], s, r, res)
 
 proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
   else:
     for i in low(x)..high(x):
       sample(x[i], s, r, res)
@@ -472,7 +469,7 @@ proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges
       var s: Sampler[int]
       sample(x, s, r, res)
       res = s.selected
-      echo "arr target: ", res
+      #echo "arr target: ", res
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
 proc runPostProcessor*(x: var string; depth: int; r: var Rand)
@@ -487,7 +484,7 @@ proc runPostProcessor*[T: distinct](x: var T; depth: int; r: var Rand) =
   # Allow post-processor functions for all distinct types.
   when compiles(postProcess(x, r)):
     if depth < 0:
-      when not supportsCopyMem(T): `=destroy`(x)
+      when not supportsCopyMem(T): reset(x)
     else:
       postProcess(x, r)
   else:
@@ -496,14 +493,14 @@ proc runPostProcessor*[T: distinct](x: var T; depth: int; r: var Rand) =
 
 proc runPostProcessor*(x: var string; depth: int; r: var Rand) =
   if depth < 0:
-    `=destroy`(x)
+    reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
 
 proc runPostProcessor*[T](x: var seq[T]; depth: int; r: var Rand) =
   if depth < 0:
-    `=destroy`(x)
+    reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -519,7 +516,7 @@ proc runPostProcessor*[T](x: var set[T]; depth: int; r: var Rand) =
 
 proc runPostProcessor*[T: tuple](x: var T; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): `=destroy`(x)
+    when not supportsCopyMem(T): reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -530,7 +527,7 @@ proc runPostProcessor*[T: tuple](x: var T; depth: int; r: var Rand) =
 
 proc runPostProcessor*[T: object](x: var T; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): `=destroy`(x)
+    when not supportsCopyMem(T): reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -554,7 +551,7 @@ proc runPostProcessor*[T: object](x: var T; depth: int; r: var Rand) =
 
 proc runPostProcessor*[T](x: var ref T; depth: int; r: var Rand) =
   if depth < 0:
-    `=destroy`(x)
+    reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -564,7 +561,7 @@ proc runPostProcessor*[T](x: var ref T; depth: int; r: var Rand) =
 
 proc runPostProcessor*[S, T](x: var array[S, T]; depth: int; r: var Rand) =
   if depth < 0:
-    when not supportsCopyMem(T): `=destroy`(x)
+    when not supportsCopyMem(T): reset(x)
   else:
     when compiles(postProcess(x, r)):
       postProcess(x, r)
@@ -627,7 +624,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
       getInput(data)
     else:
       cached = default(typeof(cached))
-    echo "step: ", step, " input: ", cached
+    echo "step: ", step , " input: ", cached
     FuzzMutator(mutator)(cached, maxLen-cached.byteSize, r)
     echo " new mutation: ", cached
     result = cached.byteSize+1 # +1 for the skipped byte
@@ -649,6 +646,7 @@ template mutatorImpl*(target, mutator, typ: untyped) =
   proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte]; len, maxLen: int;
       seed: int64): int {.exportc.} =
     try:
+      inc step
       result = customMutatorImpl(toOpenArray(data, 0, len-1), maxLen, seed)
     finally:
       when compileOption("exceptions", "goto"):
