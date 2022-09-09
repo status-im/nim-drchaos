@@ -23,10 +23,10 @@ func `==`(a, b: SampleCase): bool =
 
 func fuzzTarget(xs: seq[SampleStruct[uint8, SampleCase]]) =
   if xs.len > 3 and
-      xs[0].x == 100 and (xs[0].y.kind == C and xs[0].y.x == false and xs[0].y.y == true) and
-      xs[1].x == 55 and (xs[1].y.kind == C and xs[1].y.x == true and xs[1].y.y == false) and
-      xs[2].x == 87 and (xs[2].y.kind == C and xs[2].y.x == false and xs[2].y.y == false) and
-      xs[3].x == 24 and (xs[3].y.kind == C and xs[3].y.x == true and xs[3].y.y == true):
+      xs[0].x == 100 and xs[0].y.kind == C and (xs[0].y.x == false and xs[0].y.y == true) and
+      xs[1].x == 55 and xs[1].y.kind == C and (xs[1].y.x == true and xs[1].y.y == false) and
+      xs[2].x == 87 and xs[2].y.kind == C and (xs[2].y.x == false and xs[2].y.y == false) and
+      xs[3].x == 24 and xs[3].y.kind == C and (xs[3].y.x == true and xs[3].y.y == true):
     doAssert false
 
 defaultMutator(fuzzTarget)
