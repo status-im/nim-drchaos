@@ -60,6 +60,6 @@ when isMainModule:
     #doAssert errors.len == 0
     doAssert $x != "<head>\n\n</head>"
     # WARNING: When converting the AST to a string representation, this fuzzer seems to get stuck.
-    # It might mean that mutators work best when operating on the targeted input type.
+    # It might mean that mutators work best when operating directly on the targeted input type.
 
   defaultMutator(fuzzTarget)
