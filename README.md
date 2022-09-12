@@ -74,7 +74,7 @@ be overloaded. Which is especially useful when `nil` for `ref` is not an accepta
 
 ### Needed config
 
-Add these flags to either `filename.nims`, `config.nims`, `nim.cfg` or directly pass to the compiler:
+Add these flags to either `<filename>.nims`, `config.nims`, `nim.cfg` or directly pass to the compiler:
 
 ```nim
 --cc: clang
