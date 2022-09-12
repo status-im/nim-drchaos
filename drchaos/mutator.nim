@@ -18,9 +18,9 @@ template `+!`(p: pointer; s: int): untyped =
   cast[pointer](cast[ByteAddress](p) +% s)
 
 const
-  RandomToDefaultRatio = 100      # The chance of returning an uninitalized type.
-  DefaultMutateWeight = 1_000_000 # The default weight of items sampled by the reservoir sampler.
-  MaxInitializeDepth = 200        # The post-processor prunes nested non-copyMem types.
+  RandomToDefaultRatio = 100    # The chance of returning an uninitalized type.
+  DefaultMutateWeight = 125_000 # The default weight of items sampled by the reservoir sampler.
+  MaxInitializeDepth = 200      # The post-processor prunes nested non-copyMem types.
 
 type
   ByteSized* = int8|uint8|byte|bool|char # Run LibFuzzer's mutate for sequences of these types.
@@ -262,7 +262,7 @@ template sampleAttempt(call: untyped) =
 
 proc sample[T: distinct](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res)) # distinct bool lol
+    sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res)) # distinct bool lol
   else:
     sample(x.distinctBase, s, r, res)
 
@@ -270,39 +270,39 @@ proc sample(x: bool; s: var Sampler; r: var Rand; res: var int) =
   sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
 
 proc sample(x: char; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T: enum](x: T; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T](x: set[T]; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T: SomeNumber](x: T; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
 
 proc sample[T](x: seq[T]; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(pointer), res))
 
 proc sample(x: string; s: var Sampler; r: var Rand; res: var int) =
-  sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(pointer), res))
 
 proc sample[T: tuple|object](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
   else:
     for v in fields(x):
       sample(v, s, r, res)
 
 proc sample[T](x: ref T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
   else:
     if x != nil: sample(x[], s, r, res)
 
 proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    sampleAttempt(attempt(s, r, DefaultMutateWeight*sizeof(x), res))
   else:
     for i in low(x)..high(x):
       sample(x[i], s, r, res)
