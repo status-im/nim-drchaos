@@ -72,6 +72,24 @@ More articulate examples, such as fuzzing a graph library are in the `examples/`
 Defining a `==` proc for the input type is necessary. `proc default(_: typedesc[T]): T` can also
 be overloaded. Which is especially useful when `nil` for `ref` is not an acceptable value.
 
+### Needed config
+
+Add these flags to either `filename.nims`, `config.nims`, `nim.cfg` or directly pass to the compiler:
+
+```nim
+--cc: clang
+--define: useMalloc
+--noMain: on
+--define: noSignalHandler
+--passC: "-fsanitize=fuzzer,address,undefined"
+--passL: "-fsanitize=fuzzer,address,undefined"
+#--define: release
+--debugger: native
+```
+
+Alternatively, drchaos provides structured input for fuzzing with [nim-testutils](https://github.com/status-im/nim-testutils)
+Which includes a convenient [testrunner](https://github.com/status-im/nim-testutils/blob/master/testutils/readme.md)
+
 ### Post-processors
 
 Sometimes it is necessary to adjust the random input in order to add magic values or
