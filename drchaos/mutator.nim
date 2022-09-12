@@ -562,10 +562,11 @@ proc myMutator*[T](x: var T; sizeIncreaseHint: Natural; r: var Rand) {.nimcall.}
     runPostProcessor(x, MaxInitializeDepth, r)
 
 template initializeImpl*() =
-  proc NimMain() {.importc: "NimMain".}
+  when not defined(fuzzerStandalone):
+    proc NimMain() {.importc: "NimMain".}
 
-  proc LLVMFuzzerInitialize(): cint {.exportc.} =
-    NimMain()
+    proc LLVMFuzzerInitialize(): cint {.exportc.} =
+      NimMain()
 
 template mutatorImpl*(target, mutator, typ: untyped) =
   mixin default
@@ -627,13 +628,16 @@ template mutatorImpl*(target, mutator, typ: untyped) =
       when compileOption("exceptions", "goto"):
         {.emit: "nimTestErrorFlag();".}
 
-  proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte]; len, maxLen: int;
-      seed: int64): int {.exportc.} =
-    try:
-      result = customMutatorImpl(toOpenArray(data, 0, len-1), maxLen, seed)
-    finally:
-      when compileOption("exceptions", "goto"):
-        {.emit: "nimTestErrorFlag();".}
+  when defined(fuzzerStandalone):
+    include standalone
+  else:
+    proc LLVMFuzzerCustomMutator(data: ptr UncheckedArray[byte]; len, maxLen: int;
+        seed: int64): int {.exportc.} =
+      try:
+        result = customMutatorImpl(toOpenArray(data, 0, len-1), maxLen, seed)
+      finally:
+        when compileOption("exceptions", "goto"):
+          {.emit: "nimTestErrorFlag();".}
 
 proc commonImpl(target, mutator: NimNode): NimNode =
   let typ = getImpl(target).params[^1][1]
