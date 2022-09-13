@@ -1,6 +1,3 @@
-# There are undefined warnings about converting values to bool.
-# The cause of this issue is the very same that was fixed with destructor based variant objects.
-# But since these objects are POD the same fix doesn't apply!
 import drchaos
 
 type
@@ -13,7 +10,7 @@ type
 
   SampleCase = object
     case kind: SampleEnum
-    of A: z: uint16
+    of A: z: string
     of B: discard
     of C: x, y: bool
 
