@@ -1,3 +1,6 @@
+# There are undefined warnings about converting values to bool.
+# The cause of this issue is the very same that was fixed with destructor based variant objects.
+# But since these objects are POD the same fix doesn't apply!
 import drchaos
 
 type
