@@ -44,7 +44,7 @@ proc deleteEdge*[T](x: var Graph[T]; `from`, to: Natural) =
     if (let toNodeIdx = fromNode.edges.find(to.NodeIdx); toNodeIdx != -1):
       template toNode: untyped = fromNode.edges[toNodeIdx]
       fromNode.edges.delete(toNodeIdx)
-      #x.deleteNode(toNode.int) #sneaky bug?
+      x.deleteNode(toNode.int) # sneaky bug
 
 when defined(runFuzzTests) and isMainModule:
   import std/random, drchaos/[mutator, common]
@@ -100,7 +100,7 @@ when defined(runFuzzTests) and isMainModule:
         x.nodes[7].edges.len == 0:
       doAssert false
     # Here you could call library functions and check invariants.
-    # Such as when removing edges, the number of nodes remains the same.
+    # Such as when removing edges, the number of nodes should remain the same.
     #var x = x
     #let oldLen = x.nodes.len
     #x.deleteEdge(1, 2)
