@@ -1,4 +1,3 @@
-# Good seed to try out: -seed=4013847822
 when defined(runFuzzTests):
   const
     MaxNodes = 8 # User defined, statically limits number of nodes.
