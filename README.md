@@ -74,18 +74,9 @@ be overloaded. Which is especially useful when `nil` for `ref` is not an accepta
 
 ### Needed config
 
-Add these flags to either `<filename>.nims`, `config.nims`, `nim.cfg` or directly pass to the nim compiler:
+Compile with at least `nim c --cc:clang -d:useMalloc -t:"-fsanitize=fuzzer,address,undefined" -l:"-fsanitize=fuzzer,address,undefined" -d:nosignalhandler --nomain:on -g`, `--mm:arc|orc` is recommended.
 
-```nim
---cc: clang
---define: useMalloc
---noMain: on
---define: noSignalHandler
---passC: "-fsanitize=fuzzer,address,undefined"
---passL: "-fsanitize=fuzzer,address,undefined"
-#--define: release
---debugger: native
-```
+Sample [nim.cfg](tests/nim.cfg) and [.nimble](https://github.com/planetis-m/fuzz-playground/blob/master/playground.nimble) files
 
 Alternatively, drchaos provides structured input for fuzzing with [nim-testutils](https://github.com/status-im/nim-testutils)
 Which includes a convenient [testrunner](https://github.com/status-im/nim-testutils/blob/master/testutils/readme.md)
