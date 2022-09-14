@@ -1,3 +1,4 @@
+# This example produces valid graphs, not garbage, without using graph library functions.
 when defined(runFuzzTests):
   const
     MaxNodes = 8 # User defined, statically limits number of nodes.
