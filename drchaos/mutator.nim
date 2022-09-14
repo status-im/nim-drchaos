@@ -314,7 +314,7 @@ proc sample[T](x: ref T; s: var Sampler; r: var Rand; res: var int) =
 proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
     sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
-  when T isnot SomeNumber|bool|char:
+  when T isnot ByteSized:
     for i in low(x)..high(x):
       sample(x[i], s, r, res)
 
@@ -410,7 +410,7 @@ proc pick[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges: bool;
     r: var Rand; res: var int) =
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     pickMutate(mutate(x, sizeIncreaseHint, enforceChanges, r))
-  when T isnot SomeNumber|bool|char:
+  when T isnot ByteSized:
     for i in low(x)..high(x):
       pick(x[i], sizeIncreaseHint, enforceChanges, r, res)
 
