@@ -262,7 +262,7 @@ template sampleAttempt(call: untyped) =
 
 proc sample[T: distinct](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
-    sampleAttempt(attempt(s, r, DefaultMutateWeight, res)) # distinct bool lol
+    sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
   else:
     sample(x.distinctBase, s, r, res)
 
@@ -283,6 +283,9 @@ proc sample[T: SomeNumber](x: T; s: var Sampler; r: var Rand; res: var int) =
 
 proc sample[T](x: seq[T]; s: var Sampler; r: var Rand; res: var int) =
   sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+  when T is PostProcessTypes:
+    for i in 0..<x.len:
+      sample(x[i], s, r, res)
 
 proc sample(x: string; s: var Sampler; r: var Rand; res: var int) =
   sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
@@ -290,6 +293,14 @@ proc sample(x: string; s: var Sampler; r: var Rand; res: var int) =
 proc sample[T: tuple|object](x: T; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
     sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    when compiles(for v in mitems(x): discard):
+      when typeof(for v in mitems(x): v) is PostProcessTypes:
+        for v in mitems(x):
+          sample(v, s, r, res)
+    elif compiles(for k, v in mpairs(x): discard):
+      when typeof(for k, v in mpairs(x): v) is PostProcessTypes:
+        for k, v in mpairs(x):
+          sample(v, s, r, res)
   else:
     for v in fields(x):
       sample(v, s, r, res)
@@ -303,6 +314,9 @@ proc sample[T](x: ref T; s: var Sampler; r: var Rand; res: var int) =
 proc sample[S, T](x: array[S, T]; s: var Sampler; r: var Rand; res: var int) =
   when compiles(mutate(x, 0, false, r)):
     sampleAttempt(attempt(s, r, DefaultMutateWeight, res))
+    when T is PostProcessTypes:
+      for i in low(x)..high(x):
+        sample(x[i], s, r, res)
   else:
     for i in low(x)..high(x):
       sample(x[i], s, r, res)
@@ -355,6 +369,9 @@ proc pick[T: SomeNumber](x: var T; sizeIncreaseHint: int; enforceChanges: bool;
 proc pick[T](x: var seq[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand;
     res: var int) =
   pickMutate(mutate(x, sizeIncreaseHint, enforceChanges, r))
+  when T is PostProcessTypes:
+    for i in 0..<x.len:
+      pick(x[i], sizeIncreaseHint, enforceChanges, r, res)
 
 proc pick(x: var string; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand;
     res: var int) =
@@ -372,6 +389,14 @@ proc pick[T: object](x: var T; sizeIncreaseHint: int; enforceChanges: bool;
     r: var Rand; res: var int) =
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     pickMutate(mutate(x, sizeIncreaseHint, enforceChanges, r))
+    when compiles(for v in mitems(x): discard):
+      when typeof(for v in mitems(x): v) is PostProcessTypes:
+        for v in mitems(x):
+          pick(v, sizeIncreaseHint, enforceChanges, r, res)
+    elif compiles(for k, v in mpairs(x): discard):
+      when typeof(for k, v in mpairs(x): v) is PostProcessTypes:
+        for k, v in mpairs(x):
+          sample(v, sizeIncreaseHint, enforceChanges, r, res)
   else:
     template pickImpl(x: untyped) =
       pick(x, sizeIncreaseHint, enforceChanges, r, res)
@@ -388,6 +413,9 @@ proc pick[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges: bool;
     r: var Rand; res: var int) =
   when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
     pickMutate(mutate(x, sizeIncreaseHint, enforceChanges, r))
+    when T is PostProcessTypes:
+      for i in low(x)..high(x):
+        pick(x[i], sizeIncreaseHint, enforceChanges, r, res)
   else:
     for i in low(x)..high(x):
       pick(x[i], sizeIncreaseHint, enforceChanges, r, res)
