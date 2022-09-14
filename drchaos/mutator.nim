@@ -424,7 +424,11 @@ proc runMutator*[T: SomeNumber](x: var T; sizeIncreaseHint: int; enforceChanges:
   mutate(x, sizeIncreaseHint, enforceChanges, r)
 
 proc runMutator*[T](x: var seq[T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
-  mutate(x, sizeIncreaseHint, enforceChanges, r)
+  var res = 0
+  var s: Sampler[int]
+  sample(x, s, r, res)
+  res = s.selected
+  pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
 proc runMutator*(x: var string; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
   mutate(x, sizeIncreaseHint, enforceChanges, r)
@@ -467,18 +471,11 @@ proc runMutator*[T](x: var ref T; sizeIncreaseHint: int; enforceChanges: bool; r
       runMutator(x[], sizeIncreaseHint, enforceChanges, r)
 
 proc runMutator*[S, T](x: var array[S, T]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
-  mixin default
-  when compiles(mutate(x, sizeIncreaseHint, enforceChanges, r)):
-    mutate(x, sizeIncreaseHint, enforceChanges, r)
-  else:
-    if not enforceChanges and rand(r, RandomToDefaultRatio - 1) == 0:
-      x = default(typeof(x))
-    else:
-      var res = 0
-      var s: Sampler[int]
-      sample(x, s, r, res)
-      res = s.selected
-      pick(x, sizeIncreaseHint, enforceChanges, r, res)
+  var res = 0
+  var s: Sampler[int]
+  sample(x, s, r, res)
+  res = s.selected
+  pick(x, sizeIncreaseHint, enforceChanges, r, res)
 
 proc runPostProcessor*(x: var string; depth: int; r: var Rand)
 proc runPostProcessor*[T](x: var seq[T]; depth: int; r: var Rand)
