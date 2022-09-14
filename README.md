@@ -28,15 +28,15 @@ proc fuzzMe(s: string, a, b, c: int32) =
   if a == 0xdeadc0de'i32 and b == 0x11111111'i32 and c == 0x22222222'i32:
     if s.len == 100: doAssert false
 
-func fuzzTarget(data: (string, int32, int32, int32)) =
+proc fuzzTarget(data: (string, int32, int32, int32)) =
   let (s, a, b, c) = data
   fuzzMe(s, a, b, c)
 
 defaultMutator(fuzzTarget)
 ```
 
-> **WARNING**: Fuzz targets must not modify the input variable. This can be ensured by using `.noSideEffect`
-> and {.experimental: "strictFuncs".}
+> **WARNING**: Fuzz targets must not modify the input variable. This can be ensured for `ref`
+> pointers by using the `func` keyword and {.experimental: "strictFuncs".}
 
 Or complex as shown bellow:
 
@@ -52,14 +52,14 @@ type
     of Br: discard
     of Text: textStr: string
 
-func `==`(a, b: ContentNode): bool =
+proc `==`(a, b: ContentNode): bool =
   if a.kind != b.kind: return false
   case a.kind
   of P: return a.pChildren == b.pChildren
   of Br: return true
   of Text: return a.textStr == b.textStr
 
-func fuzzTarget(x: ContentNode) =
+proc fuzzTarget(x: ContentNode) =
   # Convert or translate `x` to any format (JSON, HMTL, binary, etc...)
   # and feed it to the API you are testing.
 
@@ -101,7 +101,7 @@ control of the mutation procedure, like uncompressing a `seq[byte]` then calling
 `runMutator` on the raw data and compressing the output again.
 
 ```nim
-func myTarget(x: seq[byte]) =
+proc myTarget(x: seq[byte]) =
   var data = uncompress(x)
   ...
 
