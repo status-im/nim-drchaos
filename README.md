@@ -74,7 +74,7 @@ be overloaded. Which is especially useful when `nil` for `ref` is not an accepta
 
 ### Needed config
 
-Compile with at least `nim c --cc:clang -d:useMalloc -t:"-fsanitize=fuzzer,address,undefined" -l:"-fsanitize=fuzzer,address,undefined" -d:nosignalhandler --nomain:on -g`, `--mm:arc|orc` is recommended.
+Compile with at least `--cc:clang -d:useMalloc -t:"-fsanitize=fuzzer,address,undefined" -l:"-fsanitize=fuzzer,address,undefined" -d:nosignalhandler --nomain:on -g`, `--mm:arc|orc` is recommended.
 
 Sample [nim.cfg](tests/nim.cfg) and [.nimble](https://github.com/planetis-m/fuzz-playground/blob/master/playground.nimble) files
 

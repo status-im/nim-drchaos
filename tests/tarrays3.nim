@@ -17,6 +17,6 @@ proc mutate(value: var DiceFace; sizeIncreaseHint: int; enforceChanges: bool; r:
   repeatMutate(r.sample([df1, df2, df3, df4, df5, df6]))
 
 func fuzzTarget(x: array[10, DiceFace]) =
-  doAssert x != array[10, DiceFace]([0, 32, 2, 4, 8, 4, 32, 8, 16, 2])
+  doAssert x != [df1, df6, df2, df3, df4, df3, df6, df4, df5, df2]
 
 defaultMutator(fuzzTarget)

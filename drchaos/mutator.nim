@@ -232,7 +232,7 @@ proc mutate*(value: var string; sizeIncreaseHint: int; enforceChanges: bool; r: 
   else:
     repeatMutate(mutateString(move value, high(int), sizeIncreaseHint, r))
 
-proc mutate*[S; T: SomeNumber|bool|char](value: var array[S, T]; sizeIncreaseHint: int;
+proc mutate*[S; T: ByteSized](value: var array[S, T]; sizeIncreaseHint: int;
     enforceChanges: bool; r: var Rand) =
   repeatMutate(mutateArray(value, r))
 
