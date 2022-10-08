@@ -65,11 +65,9 @@ when defined(runFuzzTests) and isMainModule:
 
   proc postProcess[T: SomeNumber](x: var seq[Node[T]]; r: var Rand) =
     for n in x.mitems:
-      var i = 0
-      while i <= n.edges.high:
+      for i in countdown(n.edges.high, 0):
         if n.edges[i].int >= x.len:
           delete(n.edges, i)
-        else: inc i
 
   func fuzzTarget(x: Graph[int8]) =
     when defined(dumpFuzzInput): debugEcho(x)
