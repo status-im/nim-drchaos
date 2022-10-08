@@ -47,24 +47,7 @@ proc deleteEdge*[T](x: var Graph[T]; `from`, to: Natural) =
     if (let toNodeIdx = fromNode.edges.find(to.NodeIdx); toNodeIdx != -1):
       template toNode: untyped = fromNode.edges[toNodeIdx]
       fromNode.edges.delete(toNodeIdx)
-      x.deleteNode(toNode.int) # sneaky bug
-
-proc breadthFirstSearch[T](x: Graph[T]; `from`: Natural): seq[NodeIdx] =
-  var queue: Deque[NodeIdx]
-  queue.addLast(`from`.NodeIdx)
-
-  result = @[`from`.NodeIdx]
-  var visited: PackedSet[NodeIdx]
-  visited.incl `from`.NodeIdx
-
-  while queue.len > 0:
-    let idx = queue.popFirst()
-    template node: untyped = x.nodes[idx.int]
-    for toNode in node.edges:
-      if toNode notin visited:
-        queue.addLast(toNode)
-        visited.incl toNode
-        result.add(toNode)
+      # x.deleteNode(toNode.int) # sneaky bug
 
 when defined(runFuzzTests) and isMainModule:
   import std/random, drchaos/[mutator, common]
@@ -90,8 +73,37 @@ when defined(runFuzzTests) and isMainModule:
 
   func fuzzTarget(x: Graph[int8]) =
     when defined(dumpFuzzInput): debugEcho(x)
-    if x.len > 0:
-      let nodesExplored = breadthFirstSearch(x, `from` = 0)
-      assert nodesExplored[0] == 0.NodeIdx
+    if x.nodes.len == 8 and
+        x.nodes[0].data == 63 and
+        x.nodes[1].data == 3 and
+        x.nodes[2].data == -56 and
+        x.nodes[3].data == 100 and
+        x.nodes[4].data == -100 and
+        x.nodes[5].data == -78 and
+        x.nodes[6].data == 46 and
+        x.nodes[7].data == 120 and
+
+        x.nodes[0].edges.len == 2 and
+        x.nodes[0].edges[0] == 1.NodeIdx and
+        x.nodes[0].edges[1] == 2.NodeIdx and
+        x.nodes[1].edges.len == 2 and
+        x.nodes[1].edges[0] == 3.NodeIdx and
+        x.nodes[1].edges[1] == 4.NodeIdx and
+        x.nodes[2].edges.len == 2 and
+        x.nodes[2].edges[0] == 5.NodeIdx and
+        x.nodes[2].edges[1] == 6.NodeIdx and
+        x.nodes[3].edges.len == 1 and
+        x.nodes[3].edges[0] == 7.NodeIdx and
+        x.nodes[4].edges.len == 0 and
+        x.nodes[5].edges.len == 0 and
+        x.nodes[6].edges.len == 0 and
+        x.nodes[7].edges.len == 0:
+      doAssert false
+    # Here you could call library functions and check invariants.
+    # Such as when removing edges, the number of nodes should remain the same.
+    #var x = x
+    #let oldLen = x.nodes.len
+    #x.deleteEdge(1, 2)
+    #doAssert oldLen == x.nodes.len
 
   defaultMutator(fuzzTarget)
