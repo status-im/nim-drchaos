@@ -63,11 +63,11 @@ when defined(runFuzzTests) and isMainModule:
   proc mutate(value: var seq[NodeIdx]; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
     repeatMutateInplace(mutateSeq(value, tmp, MaxEdges, sizeIncreaseHint, r))
 
-  proc postProcess[T: SomeNumber](x: var seq[Node[T]]; r: var Rand) =
+  proc postProcess[T](x: var seq[Node[T]]; r: var Rand) =
     for n in x.mitems:
       for i in countdown(n.edges.high, 0):
         if n.edges[i].int >= x.len:
-          delete(n.edges, i)
+          del(n.edges, i)
 
   func fuzzTarget(x: Graph[int8]) =
     when defined(dumpFuzzInput): debugEcho(x)

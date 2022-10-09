@@ -1,1 +1,2 @@
 --define: runFuzzTests
+# --define: dumpFuzzInput
