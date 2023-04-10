@@ -206,10 +206,6 @@ which  often have difficulty handling nested dynamic types. For a more detailed
 explanation of these issues, you can read an article by the author of Fuzzcheck, available
 at the following link: <https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md>
 
-## Bugs found with the help of drchaos
-
-### Nim reference implementation
-
 ## Bugs discovered with the assistance of drchaos
 
 The drchaos framework has helped discover various bugs in software projects. Here are some
