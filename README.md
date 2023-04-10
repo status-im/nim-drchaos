@@ -1,30 +1,35 @@
 # drchaos
 
-Fuzzing is an automated bug finding technique, where randomized inputs are fed to a target
-program in order to get it to crash. With fuzzing, you can increase your test coverage to
-find edge cases and trigger bugs more effectively.
+Fuzzing is a technique for automated bug detection that involves providing random inputs
+to a target program to induce crashes. This approach can increase test coverage, enabling
+the identification of edge cases and more efficient triggering of bugs.
 
-drchaos extends the Nim interface to LLVM/Clang libFuzzer, an in-process,
-coverage-guided, evolutionary fuzzing engine. And adds support for
+Drchaos extends the Nim interface to LLVM/Clang libFuzzer, an in-process, coverage-guided,
+and evolutionary fuzzing engine, while also introducing support for
 [structured fuzzing](https://github.com/google/fuzzing/blob/master/docs/structure-aware-fuzzing.md).
-The user should define the input type, as a parameter to the target function and the
-fuzzer is responsible for providing valid inputs. Behind the scenes it uses value profiling
-to guide the fuzzer past these comparisons much more efficiently than simply hoping to
-stumble on the exact sequence of bytes by chance.
+To utilize this functionality, users must specify the input type as a parameter for the
+target function, and the fuzzer generates valid inputs. This process employs value
+profiling to direct the fuzzer beyond these comparisons more efficiently than relying on
+the probability of finding the exact sequence of bytes by chance.
 
 ## Usage
 
-For most cases, it is fairly trivial to define a data type and a target function that
-performs some operations and checks if the invariants expressed as assert conditions still
-hold. See [What makes a good fuzz target](https://github.com/google/fuzzing/blob/master/docs/good-fuzz-target.md)
-for more information. Then call `defaultMutator` with that function as parameter. That fuzz target can be as basic as
-defining a fixed-size type and ensuring the software under test doesn't crash like:
+Creating a fuzz target by defining a data type and a target function that performs
+operations and verifies if the invariants are maintained via assert conditions is usually
+an uncomplicated task for most scenarios. For more information on creating effective fuzz
+targets, please refer to
+[What makes a good fuzz target](https://github.com/google/fuzzing/blob/master/docs/good-fuzz-target.md)
+Once the target function is defined, the `defaultMutator` can be called with that function
+as argument.
+
+A basic fuzz target, such as verifying that the software under test remains stable without
+crashing by defining a fixed-size type, can suffice:
 
 ```nim
 import drchaos
 
 proc fuzzMe(s: string, a, b, c: int32) =
-  # function under test
+  # The function being tested.
   if a == 0xdeadc0de'i32 and b == 0x11111111'i32 and c == 0x22222222'i32:
     if s.len == 100: doAssert false
 
@@ -35,10 +40,11 @@ proc fuzzTarget(data: (string, int32, int32, int32)) =
 defaultMutator(fuzzTarget)
 ```
 
-> **WARNING**: Fuzz targets must not modify the input variable. This can be ensured for `ref`
-> pointers by using the `func` keyword and {.experimental: "strictFuncs".}
+> **WARNING**: Modifying the input variable within fuzz targets is not allowed.
+> If you are using ref types, you can prevent modifications by utilizing the `func` keyword
+> and `{.experimental: "strictFuncs".}` in your code.
 
-Or complex as shown bellow:
+It is also possible to create more complex fuzz targets, such as the one shown below:
 
 ```nim
 import drchaos
@@ -60,33 +66,38 @@ proc `==`(a, b: ContentNode): bool =
   of Text: return a.textStr == b.textStr
 
 proc fuzzTarget(x: ContentNode) =
-  # Convert or translate `x` to any format (JSON, HMTL, binary, etc...)
-  # and feed it to the API you are testing.
+  # Convert or translate `x` to any desired format (JSON, HMTL, binary, etc.),
+  # and then feed it into the API being tested.
 
 defaultMutator(fuzzTarget)
 ```
 
-drchaos will generate millions of inputs and run `fuzzTarget` under a few seconds.
-More articulate examples, such as fuzzing a graph library are in the `examples/` directory.
+Using drchaos, it is possible to generate millions of inputs and execute fuzzTarget within
+just a few seconds. More elaborate examples, such as fuzzing a graph library, can be
+located in the [examples](examples/) directory.
 
-Defining a `==` proc for the input type is necessary. `proc default(_: typedesc[T]): T` can also
-be overloaded. Which is especially useful when `nil` for `ref` is not an acceptable value.
+It is critical to define a `==` proc for the input type. Overloading
+`proc default(_: typedesc[T]): T` can also be advantageous, especially when `nil` is not a
+valid value for `ref`.
 
 ### Needed config
 
-Compile with at least `--cc:clang -d:useMalloc -t:"-fsanitize=fuzzer,address,undefined" -l:"-fsanitize=fuzzer,address,undefined" -d:nosignalhandler --nomain:on -g`, `--mm:arc|orc` is recommended.
+To compile the fuzz target, it is recommended to use at least the following flags:
+`--cc:clang -d:useMalloc -t:"-fsanitize=fuzzer,address,undefined" -l:"-fsanitize=fuzzer,address,undefined" -d:nosignalhandler --nomain:on -g`.
+Additionally, it is recommended to use `--mm:arc|orc` when possible.
 
-Sample [nim.cfg](tests/nim.cfg) and [.nimble](https://github.com/planetis-m/fuzz-playground/blob/master/playground.nimble) files
+Sample nim.cfg and .nimble files can be found in the [tests/](tests/nim.cfg) directory and
+[this repository](https://github.com/planetis-m/fuzz-playground/blob/master/playground.nimble), respectively.
 
-Alternatively, drchaos provides structured input for fuzzing with [nim-testutils](https://github.com/status-im/nim-testutils)
-Which includes a convenient [testrunner](https://github.com/status-im/nim-testutils/blob/master/testutils/readme.md)
+Alternatively, drchaos offers structured input for fuzzing using [nim-testutils](https://github.com/status-im/nim-testutils). This includes a convenient [testrunner](https://github.com/status-im/nim-testutils/blob/master/testutils/readme.md).
 
 ### Post-processors
 
-Sometimes it is necessary to adjust the random input in order to add magic values or
-dependencies between some fields. This is supported with a post-processing step, which for
-performance and clarity reasons only runs on compound types such as
-object/tuple/ref/seq/string/array/set and by exception distinct types.
+In some cases, it may be necessary to modify the randomized input to include specific
+values or create dependencies between certain fields. To support this functionality,
+drchaos offers a post-processing step that runs on compound types like object, tuple, ref,
+seq, string, array, and set. This step is only executed on these types for performance and
+clarity purposes, with distinct types being the exception.
 
 ```nim
 proc postProcess(x: var ContentNode; r: var Rand) =
@@ -96,14 +107,16 @@ proc postProcess(x: var ContentNode; r: var Rand) =
 
 ### Custom mutator
 
-Besides `defaultMutator` there is also `customMutator` which allows more fine-grained
-control of the mutation procedure, like uncompressing a `seq[byte]` then calling
-`runMutator` on the raw data and compressing the output again.
+The `defaultMutator` is a convenient way to generate and mutate inputs for a given
+fuzz target. However, if more fine-grained control is needed, the `customMutator`
+can be used. With `customMutator`, the mutation procedure can be customized to
+perform specific actions, such as uncompressing a `seq[byte]` before calling
+`runMutator` on the raw data, and then compressing the output again.
 
 ```nim
 proc myTarget(x: seq[byte]) =
   var data = uncompress(x)
-  ...
+  # ...
 
 proc myMutator(x: var seq[byte]; sizeIncreaseHint: Natural; r: var Rand) =
   var data = uncompress(x)
@@ -115,11 +128,12 @@ customMutator(myTarget, myMutator)
 
 ### User-defined mutate procs
 
-It's possible to use distinct types to provide a mutate overload for fields that have
-interesting values, like file signatures or to limit the search space.
+Distinct types can be used to provide a mutate overload for fields with unique values or
+to restrict the search space. For example, it is possible to define a distinct type for
+file signatures or other specific values that may be of interest.
 
 ```nim
-# Fuzzed library
+# Inside the library being fuzzed
 when defined(runFuzzTests):
   type
     ClientId = distinct int
@@ -129,7 +143,7 @@ else:
   type
     ClientId = int
 
-# In a test file
+# Inside a test file
 import drchaos/mutator
 
 const
@@ -138,57 +152,72 @@ const
   idC = 4.ClientId
 
 proc mutate(value: var ClientId; sizeIncreaseHint: int; enforceChanges: bool; r: var Rand) =
-  # use `rand()` to return a new value.
+  # Call `random.rand()` to return a new value.
   repeatMutate(r.sample([idA, idB, idC]))
 ```
 
-For aiding the creation of mutate functions, mutators for every supported type are
-exported by `drchaos/mutator`.
+The `drchaos/mutator` module exports mutators for every supported type to aid in the
+creation of mutate functions.
 
 ### User-defined serializers
 
-User overloads must use the following proc signatures:
+User overloads should follow the following `proc` signatures:
 
 ```nim
 proc fromData(data: openArray[byte]; pos: var int; output: var T)
 proc toData(data: var openArray[byte]; pos: var int; input: T)
-proc byteSize(x: T): int {.inline.} ## The size that will be consumed by the serialized type in bytes.
+proc byteSize(x: T): int {.inline.} # The amount of memory that the serialized type will occupy, measured in bytes.
 ```
 
-This is only necessary for objects that contain raw pointers.
-`drchaos/common` exports read/write procs that assist with this task.
+The need for this arises only in the case of objects that include raw pointers. To address
+this, `drchaos/common` offers read/write procedures to simplify the process.
 
-`mutate`, `default` and `==` must also be defined.
-Containers also need `mitems` or `mpairs` iterators.
+It is necessary to define the `mutate`, `default` and `==` procedures. For container
+types, it is also necessary to define `mitems` or `mpairs` iterators.
 
-### Dos and don'ts
+### Best practices and considerations
 
-- Don't `echo`  in a fuzz target as it slows down execution speed.
-- Prefer `-d:danger` for maximum performance.
-- Once you have a crash you can recompile with `-d:debug` and pass the crashing test case as parameter.
-- Use `debugEcho(x)` in a target to print the crashing input.
-- You could compile without sanitizers, AddressSanitizer slows down programs by ~2x, but it's not recommended.
+- Avoid using `echo` in a fuzz target as it can significantly slow down the execution speed.
+
+- Prefer using `-d:danger` for maximum performance, but ensure that your code is free from
+  undefined behavior and does not rely on any assumptions that may break in unexpected ways.
+
+- Once you have identified a crash, you can recompile the program with `-d:debug` and pass the
+  crashing test case as a parameter to further investigate the cause of the crash.
+
+- Use `debugEcho(x)` in a target to print the input that caused the crash, which can be
+  helpful in debugging and reproducing the issue.
+
+- Although disabling sanitizers may improve performance, it is not recommended as
+  AddressSanitizer can help catch memory errors and undefined behavior that may lead to
+  crashes or other bugs.
 
 ### What's not supported
 
-- Polymorphic types, missing serialization support.
-- References with cycles. A `.noFuzz` custom pragma will be added soon for cursors.
-- Object variants work only with the lastest memory management model `--mm:arc/orc`.
+- Polymorphic types do not have serialization support.
+- References with cycles are not supported. However, a .noFuzz custom pragma will be added soon for cursors.
+- Object variants only work with the latest memory management model, which is `--mm:arc|orc`.
 
-## Why choose drchaos
+## Advantages of using drchaos for fuzzing
 
-drchaos has several advantages over frameworks derived from
-[FuzzDataProvider](https://github.com/google/fuzzing/blob/master/docs/split-inputs.md)
-which struggle with dynamic types that in particular are nested. For a better explanation
-read an article written by the author of
-[Fuzzcheck](https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md).
+drchaos offers a number of advantages over frameworks based on
+[FuzzDataProvider](https://github.com/google/fuzzing/blob/master/docs/split-inputs.md),
+which  often have difficulty handling nested dynamic types. For a more detailed
+explanation of these issues, you can read an article by the author of Fuzzcheck, available
+at the following link: <https://github.com/loiclec/fuzzcheck-rs/blob/main/articles/why_not_bytes.md>
 
 ## Bugs found with the help of drchaos
 
 ### Nim reference implementation
 
-* [use-after-free bugs in object variants](https://github.com/nim-lang/Nim/issues/20305)
-* [openArray on empty seq triggers UB](https://github.com/nim-lang/Nim/issues/20294)
+## Bugs discovered with the assistance of drchaos
+
+The drchaos framework has helped discover various bugs in software projects. Here are some
+examples of bugs that were found in the Nim reference implementation with the help of
+drchaos:
+
+* Use-after-free bugs in object variants (https://github.com/nim-lang/Nim/issues/20305)
+* OpenArray on an empty sequence triggers undefined behavior (https://github.com/nim-lang/Nim/issues/20294)
 
 ## License
 
